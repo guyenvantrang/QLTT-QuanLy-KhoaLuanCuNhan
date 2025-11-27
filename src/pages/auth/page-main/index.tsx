@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
     FaUserTie, FaUsers, FaTag, FaTools, FaSitemap, FaHandshake, FaArrowRight, FaCogs,
-    FaCheckCircle, FaSpinner
+    FaCheckCircle, FaSpinner,
+    FaRobot
 } from 'react-icons/fa';
 import { FiLayers } from 'react-icons/fi';
 
@@ -20,6 +21,7 @@ const managementTabs = [
     { name: "Người dùng (Users)", path: "/phanquyen/nguoidung", icon: FaUsers, description: "Quản lý tài khoản, mật khẩu và gán chức vụ." },
     { name: "Chức năng (Features)", path: "/phanquyen/chucnang", icon: FaTools, description: "Quản lý mã quyền (Code) và URL truy cập (Trang web)." }, // Cập nhật mô tả
     { name: "Nhóm quyền (Groups)", path: "/phanquyen/nhomquyen", icon: FaTag, description: "Gom nhóm các chức năng để cấp quyền nhanh." },
+    { name: "Chatbot (AI)", path: "/phanquyen/chatbot", icon: FaRobot, description: "Quản lý nội dung và dữ liệu giúp Chatbot AI hoạt động hiệu quả." },
 ];
 
 export default function PhanQuyenIndex() {

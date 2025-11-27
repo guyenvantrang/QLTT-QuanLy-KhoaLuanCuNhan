@@ -44,6 +44,7 @@ import QuanLyNhomQuyen from "../pages/auth/page-main/nhomquyeb";
 import QuanLyPhanQuyen from "../pages/auth/page-main/phanquyen";
 // import HeThong3D from "../pages/auth/page-main/sodo";
 import LecturerAllocationStatistics from "../components/functionpages/batch-internships/phanbogiangvien";
+import ChatbotAdminDashboard from "../pages/ChatbotDataManager";
 
 export default function AppRoutes() {
   return (
@@ -157,6 +158,7 @@ export default function AppRoutes() {
         <Route path="chucnang" element={<QuanLyChucNang />} />
         <Route path="nhomquyen" element={<QuanLyNhomQuyen />} />
         <Route path="phanquyen" element={<QuanLyPhanQuyen />} />
+        <Route path="chatbot" element={<ChatbotAdminDashboard />} />
         {/* <Route path="sodo" element={<HeThong3D />} /> */}
 
       </Route>
