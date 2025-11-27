@@ -18,6 +18,7 @@ import {
 import { Modal, ModalBody, ModalHeader } from "flowbite-react";
 import DetailDotPhanBoCard from "../components/functionpages/allocation/create";
 import UpdateDotPhanBoCard from "../components/functionpages/allocation/update";
+import { Can } from "../routes/Can";
 
 export default function AllocationManagement() {
     const navigate = useNavigate();
@@ -73,12 +74,19 @@ export default function AllocationManagement() {
                 <h2 className="text-3xl font-extrabold text-blue-800 tracking-tight">
                     Quản lý đợt phân bố
                 </h2>
-                <button
-                    onClick={() => setCreateModalOpen(true)}
-                    className="flex items-center gap-2 bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2 rounded-xl shadow hover:scale-105 transition"
+                {/* Nút Thêm mới phân bố */}
+                <Can
+                    trangtruycap="/internship-allocation/create-allocation/:madot"
+                    matruycap="hienthi_dotthuctap_dotphanbocongty_them"
                 >
-                    <FaEdit /> Thêm mới phân bố
-                </button>
+                    <button
+                        onClick={() => setCreateModalOpen(true)}
+                        className="flex items-center gap-2 bg-gradient-to-r from-blue-400 to-blue-600 text-white px-4 py-2 rounded-xl shadow hover:scale-105 transition"
+                    >
+                        <FaEdit /> Thêm mới phân bố
+                    </button>
+                </Can>
+
 
                 {/* Modal Tạo mới */}
                 <Modal
@@ -177,34 +185,49 @@ export default function AllocationManagement() {
                                         <div className="flex flex-nowrap justify-center items-center gap-2">
 
                                             {/* Nút Sửa (Secondary Action) */}
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedAllocation(item);
-                                                    setUpdateModalOpen(true);
-                                                }}
-                                                className="flex items-center gap-1 px-3 py-2 text-xs font-medium bg-amber-50 text-amber-600 rounded-lg shadow-sm hover:bg-amber-100 transition-all border border-amber-200 whitespace-nowrap"
-                                                title="Sửa thông tin đợt phân bổ"
+                                            <Can
+                                                trangtruycap="/internship-allocation/create-allocation/:madot"
+                                                matruycap="hienthi_dotthuctap_dotphanbocongty_sua"
                                             >
-                                                <FaEdit className="w-3 h-3" /> Sửa
-                                            </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedAllocation(item);
+                                                        setUpdateModalOpen(true);
+                                                    }}
+                                                    className="flex items-center gap-1 px-3 py-2 text-xs font-medium bg-amber-50 text-amber-600 rounded-lg shadow-sm hover:bg-amber-100 transition-all border border-amber-200 whitespace-nowrap"
+                                                    title="Sửa thông tin đợt phân bổ"
+                                                >
+                                                    <FaEdit className="w-3 h-3" /> Sửa
+                                                </button>
+                                            </Can>
 
                                             {/* Nút Phân bổ chi tiết (Primary Action) */}
-                                            <button
-                                                onClick={() => navigate(`/internship-allocation/allocation/${item.madot}/${item.madotphanbo}`)}
-                                                className="flex items-center gap-1 px-3 py-2 text-xs font-semibold bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all hover:scale-[1.02] whitespace-nowrap"
-                                                title="Phân bổ sinh viên vào công ty"
+                                            <Can
+                                                trangtruycap="/internship-allocation/create-allocation/:madot"
+                                                matruycap="hienthi_dotthuctap_dotphanbocongty_chitiet"
                                             >
-                                                <FaHandshake className="w-3 h-3" /> Chi tiết
-                                            </button>
+                                                <button
+                                                    onClick={() => navigate(`/internship-allocation/allocation/${item.madot}/${item.madotphanbo}`)}
+                                                    className="flex items-center gap-1 px-3 py-2 text-xs font-semibold bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all hover:scale-[1.02] whitespace-nowrap"
+                                                    title="Phân bổ sinh viên vào công ty"
+                                                >
+                                                    <FaHandshake className="w-3 h-3" /> Chi tiết
+                                                </button>
+                                            </Can>
 
                                             {/* Nút Xóa (Danger Action) */}
-                                            <button
-                                                onClick={() => handleDelete(item.madotphanbo)}
-                                                className="flex items-center gap-1 px-3 py-2 text-xs font-medium bg-rose-50 text-rose-600 rounded-lg shadow-sm hover:bg-rose-100 transition-all border border-rose-200 whitespace-nowrap"
-                                                title="Xóa đợt phân bổ này"
+                                            <Can
+                                                trangtruycap="/internship-allocation/create-allocation/:madot"
+                                                matruycap="hienthi_dotthuctap_dotphanbocongty_xoa"
                                             >
-                                                <FaTrash className="w-3 h-3" /> Xóa
-                                            </button>
+                                                <button
+                                                    onClick={() => handleDelete(item.madotphanbo)}
+                                                    className="flex items-center gap-1 px-3 py-2 text-xs font-medium bg-rose-50 text-rose-600 rounded-lg shadow-sm hover:bg-rose-100 transition-all border border-rose-200 whitespace-nowrap"
+                                                    title="Xóa đợt phân bổ này"
+                                                >
+                                                    <FaTrash className="w-3 h-3" /> Xóa
+                                                </button>
+                                            </Can>
 
                                         </div>
                                     </td>

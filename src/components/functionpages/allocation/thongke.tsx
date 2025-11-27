@@ -1,121 +1,20 @@
 "use client";
 import { motion } from "framer-motion";
-import { Users, Building2, XCircle, MessageSquare } from "lucide-react";
+import { 
+    Users, Building2, XCircle, MessageSquare, 
+    ChevronRight, TrendingUp, Activity,  
+} from "lucide-react";
 import { useEffect, useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer, CartesianGrid, } from "recharts";
-import { thongke } from "../../../functions/batch-internship"
+import { 
+    BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, 
+    ResponsiveContainer, CartesianGrid 
+} from "recharts";
+import { thongke } from "../../../functions/batch-internship";
 import { useNavigate, useParams } from "react-router-dom";
-/* ==========================
-      ⭐ DATA
-========================== */
-
 
 /* ==========================
-      ⭐ STAT CARD COMPONENT
+     ⭐ INTERFACES & UTILS
 ========================== */
-/* ==========================
-      ⭐ STAT CARD COMPONENT
-========================== */
-const StatCard = ({ title, value, icon, color = "bg-indigo-500", onDetail, }: {
-    title: string; value: number | string; icon: React.ReactNode; color?: string; onDetail?: () => void;
-}) => {
-    return (
-        <div className="p-6 rounded-xl shadow-lg flex flex-col justify-between bg-white">
-            <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-                <div className={`w-10 h-10 flex items-center justify-center rounded-full text-white ${color}`}>
-                    {icon}
-                </div>
-            </div>
-            <p className="mt-4 text-2xl font-bold text-gray-900">{value}</p>
-            {onDetail && (
-                <button
-                    onClick={onDetail}
-                    className="
-            mt-4
-            px-5 py-2
-            text-sm font-medium
-            rounded-lg
-            bg-gradient-to-r from-green-200 via-green-300 to-green-200
-            text-green-800
-            shadow-sm
-            hover:shadow-md
-            hover:scale-105
-            transition duration-300 ease-in-out
-            flex items-center gap-2
-            focus:outline-none focus:ring-2 focus:ring-green-300 focus:ring-offset-1
-          "
-                >
-                    Chi tiết
-                    <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 19l14-14M5 5h14v14" />
-                    </svg>
-                </button>
-            )}
-        </div>
-    );
-};
-
-/* ==========================
-      ⭐ CHART CARD COMPONENT
-========================== */
-const ChartCard = ({
-    title,
-    subtitle,
-    children,
-    onDetail,
-}: {
-    title: string;
-    subtitle?: string;
-    children: React.ReactNode;
-    onDetail?: () => void;
-}) => {
-    return (
-        <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full">
-            <div className="flex justify-between items-center mb-4">
-                <div>
-                    <h3 className="text-lg font-semibold">{title}</h3>
-                    {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
-                </div>
-                {onDetail && (
-                    <button
-                        onClick={onDetail}
-                        className="
-              px-3 py-1
-              text-sm font-medium
-              rounded-lg
-              bg-gradient-to-r from-indigo-200 via-indigo-300 to-indigo-200
-              text-indigo-800
-              shadow-sm
-              hover:shadow-md
-              hover:scale-105
-              transition duration-300 ease-in-out
-              flex items-center gap-1
-            "
-                    >
-                        Chi tiết
-                        <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 19l14-14M5 5h14v14" />
-                        </svg>
-                    </button>
-                )}
-            </div>
-            <div className="flex-1">{children}</div>
-        </div>
-    );
-};
 interface ThongKeResult {
     tongsosinhviendangky: number;
     tongsinhviendacocongty: number;
@@ -126,109 +25,319 @@ interface ThongKeResult {
     chuacoketqua: number;
 }
 
+// Bảng màu chủ đạo
+const COLORS = {
+    primary: "#2563EB",   // Blue-600 (Chủ đạo)
+    success: "#10B981",   // Emerald-500 (Tích cực)
+    danger: "#F43F5E",    // Rose-500 (Tiêu cực/Cảnh báo)
+    warning: "#F59E0B",   // Amber-500 (Chờ đợi)
+    bgIcon: "rgba(59, 130, 246, 0.1)", // Nền icon mờ
+};
+
 /* ==========================
-      ⭐ DASHBOARD COMPONENT
+     ⭐ CUSTOM TOOLTIP (RECHARTS)
+========================== */
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-white/90 backdrop-blur-md p-3 border border-blue-200 shadow-[0_0_15px_rgba(59,130,246,0.2)] rounded-xl">
+                <p className="font-bold text-slate-700 mb-1 text-sm">{label}</p>
+                <div className="flex items-center gap-2">
+                    <span 
+                        className="w-2.5 h-2.5 rounded-full shadow-sm" 
+                        style={{ backgroundColor: payload[0].color }}
+                    ></span>
+                    <span className="text-xs text-slate-600 font-medium">
+                        Số lượng: <span className="font-bold text-blue-700 text-sm ml-1">{payload[0].value}</span>
+                    </span>
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
+
+/* ==========================
+     ⭐ STAT CARD COMPONENT (GLOWING EFFECT)
+========================== */
+const StatCard = ({ 
+    title, 
+    value, 
+    icon, 
+    iconColor, 
+    onDetail, 
+}: {
+    title: string; 
+    value: number | string; 
+    icon: React.ReactNode; 
+    iconColor: string; // Class text color (vd: text-blue-600)
+    onDetail?: () => void;
+}) => {
+    return (
+        <motion.div 
+            whileHover={{ y: -5, scale: 1.01 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            // --- GLOWING BORDER EFFECT ---
+            className="group relative p-6 rounded-2xl bg-white border border-blue-100 shadow-sm transition-all duration-300 
+                       hover:border-blue-400 hover:shadow-[0_0_20px_rgba(59,130,246,0.25)] flex flex-col justify-between overflow-hidden"
+        >
+            {/* Background Decor */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-transparent to-slate-50 opacity-50 rounded-bl-full pointer-events-none" />
+
+            <div>
+                <div className="flex items-start justify-between mb-4">
+                    <div>
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{title}</h3>
+                        <p className="text-3xl font-black text-slate-800 tracking-tight group-hover:text-blue-700 transition-colors">
+                            {value}
+                        </p>
+                    </div>
+                    {/* Icon Box */}
+                    <div className={`p-3 rounded-xl ${iconColor} bg-opacity-10 bg-current shadow-inner ring-1 ring-black/5`}>
+                        {icon}
+                    </div>
+                </div>
+            </div>
+
+            {onDetail && (
+                <button
+                    onClick={onDetail}
+                    className="
+                        mt-2 w-full py-2 px-4
+                        text-xs font-bold uppercase tracking-wide
+                        rounded-lg
+                        text-blue-600 bg-blue-50
+                        border border-blue-100
+                        group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600
+                        group-hover:shadow-md
+                        transition-all duration-300 ease-out
+                        flex items-center justify-center gap-2
+                    "
+                >
+                    Xem chi tiết
+                    <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </button>
+            )}
+        </motion.div>
+    );
+};
+
+/* ==========================
+     ⭐ CHART CARD COMPONENT
+========================== */
+const ChartCard = ({
+    title,
+    subtitle,
+    children,
+    onDetail,
+    icon
+}: {
+    title: string;
+    subtitle?: string;
+    children: React.ReactNode;
+    onDetail?: () => void;
+    icon?: React.ReactNode;
+}) => {
+    return (
+        <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            // --- GLOWING BORDER EFFECT ---
+            className="bg-white rounded-2xl p-6 border border-blue-100 shadow-sm flex flex-col h-full transition-all duration-300
+                       hover:border-blue-400 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+        >
+            <div className="flex justify-between items-start mb-6">
+                <div className="flex gap-3">
+                    {icon && <div className="p-2 bg-blue-50 text-blue-600 rounded-lg h-fit border border-blue-100">{icon}</div>}
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-800 group-hover:text-blue-700 transition-colors">{title}</h3>
+                        {subtitle && <p className="text-xs text-slate-400 font-medium mt-0.5">{subtitle}</p>}
+                    </div>
+                </div>
+                {onDetail && (
+                    <button
+                        onClick={onDetail}
+                        className="
+                            px-3 py-1.5
+                            text-xs font-bold rounded-full
+                            text-slate-500 bg-slate-100
+                            hover:bg-blue-600 hover:text-white
+                            transition-all duration-300
+                            flex items-center gap-1
+                        "
+                    >
+                        Chi tiết <ChevronRight className="w-3 h-3" />
+                    </button>
+                )}
+            </div>
+            <div className="flex-1 w-full min-h-[300px] relative">
+                {children}
+            </div>
+        </motion.div>
+    );
+};
+
+/* ==========================
+     ⭐ DASHBOARD COMPONENT
 ========================== */
 export default function Dashboard() {
     const navigate = useNavigate();
     const [courses, setCourses] = useState<ThongKeResult>();
     const { madot } = useParams<{ madot: string }>();
-    useEffect(() => { thongke(madot || "").then((res) => setCourses(res)).catch((err) => console.error("Lỗi tải dữ liệu:", err)); }, []);
-    const DASHBOARD_STATS = {
-        totalRegister: courses?.tongsosinhviendangky,
-        hasCompany: courses?.tongsinhviendacocongty,
-        noCompany: courses?.tongsinhvienchuacongty,
-        noInterview: courses?.chuacoketqua,
-        pass: courses?.tongphongvandau,
-        fail: courses?.tongLanRot,
-        allocationRounds: 3,
-        unreadMessages: 12,
-    };
-    const stats = DASHBOARD_STATS;
-    const showDetail = (title: string) => alert(`Chi tiết: ${title}`);
 
+    useEffect(() => { 
+        thongke(madot || "")
+            .then((res) => setCourses(res))
+            .catch((err) => console.error("Lỗi tải dữ liệu:", err)); 
+    }, [madot]);
+
+    // Xử lý dữ liệu an toàn (tránh undefined)
+    const stats = {
+        totalRegister: courses?.tongsosinhviendangky ?? 0,
+        hasCompany: courses?.tongsinhviendacocongty ?? 0,
+        noCompany: courses?.tongsinhvienchuacongty ?? 0,
+        noInterview: courses?.chuacoketqua ?? 0,
+        pass: courses?.tongphongvandau ?? 0,
+        fail: courses?.tongLanRot ?? 0,
+        unreadMessages: courses?.tongtinnhanchuadoc ?? 0,
+    };
+
+    const showDetail = (title: string) => alert(`Chức năng đang cập nhật: ${title}`);
+
+    // Dữ liệu biểu đồ
     const companyStatusData = [
-        { name: "Đã có công ty", value: stats.hasCompany, color: "#10B981" },
-        { name: "Chưa có công ty", value: stats.noCompany, color: "#EF4444" },
+        { name: "Đã có công ty", value: stats.hasCompany, color: COLORS.success }, // Xanh lá
+        { name: "Chưa có công ty", value: stats.noCompany, color: COLORS.danger }, // Đỏ
     ];
 
     const interviewResultData = [
-        { name: "Đậu", value: stats.pass, color: "#10B981" },
-        { name: "Rớt", value: stats.fail, color: "#EF4444" },
-        { name: "Chưa có KQ", value: stats.noInterview, color: "#F59E0B" },
+        { name: "Đậu", value: stats.pass, color: COLORS.success },
+        { name: "Rớt", value: stats.fail, color: COLORS.danger },
+        { name: "Chưa có KQ", value: stats.noInterview, color: COLORS.warning }, // Vàng cam
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-slate-50/80 p-6 font-sans text-slate-900 selection:bg-blue-100">
+            <div className="max-w-[1600px] mx-auto space-y-8">
+                
+                {/* Header */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+                    <div>
+                        <h1 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600 flex items-center gap-3">
+                            <Activity className="text-blue-600" />
+                            Tổng Quan Đợt Thực Tập
+                        </h1>
+                        <p className="text-sm text-slate-500 font-medium mt-1 ml-9">
+                            Mã đợt: <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-100 font-bold">{madot}</span>
+                        </p>
+                    </div>
+                </div>
 
-            <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-                {/* Stats Row */}
-                <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                {/* --- STATS GRID --- */}
+                <motion.div 
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+                    initial="hidden" animate="visible"
+                    variants={{
+                        visible: { transition: { staggerChildren: 0.1 } }
+                    }}
+                >
                     <StatCard
-                        title="Tổng số sinh viên"
-                        value={stats.totalRegister || ""}
-                        icon={<Users className="w-6 h-6" />}
-                        color="bg-indigo-500"
+                        title="Tổng sinh viên đăng ký"
+                        value={stats.totalRegister}
+                        icon={<Users size={24} />}
+                        iconColor="text-blue-600"
                         onDetail={() => navigate(`/internship-allocation/danh-sach-sinh-vien-dang-ky/${madot}`)}
                     />
                     <StatCard
-                        title="Đã có công ty"
-                        value={stats.hasCompany || ""}
-                        icon={<Building2 className="w-6 h-6" />}
-                        color="bg-green-500"
-                         onDetail={() => navigate(`/internship-allocation/danh-sach-sinh-vien-da-co-cong-ty/${madot}`)}
+                        title="Đã có nơi thực tập"
+                        value={stats.hasCompany}
+                        icon={<Building2 size={24} />}
+                        iconColor="text-emerald-500" // Màu xanh lá biểu thị thành công
+                        onDetail={() => navigate(`/internship-allocation/danh-sach-sinh-vien-da-co-cong-ty/${madot}`)}
                     />
                     <StatCard
-                        title="Chưa có công ty"
-                        value={stats.noCompany || ""}
-                        icon={<XCircle className="w-6 h-6" />}
-                        color="bg-red-500"
+                        title="Chưa có nơi thực tập"
+                        value={stats.noCompany}
+                        icon={<XCircle size={24} />}
+                        iconColor="text-rose-500" // Màu đỏ biểu thị cảnh báo
                         onDetail={() => navigate(`/internship-allocation/danh-sach-sinh-vien-chua-co-cong-ty/${madot}`)}
                     />
                     <StatCard
-                        title="Tin nhắn chưa đọc"
+                        title="Phân công giảng viên"
                         value={stats.unreadMessages}
-                        icon={<MessageSquare className="w-6 h-6" />}
-                        color="bg-yellow-500"
-                        onDetail={() => showDetail("Tin nhắn chưa phản hồi")}
+                        icon={<MessageSquare size={24} />}
+                        iconColor="text-amber-500" // Màu vàng biểu thị chú ý
+                        onDetail={() => navigate(`/internship-allocation/danh-sach-phan-bo-giang-vien/${madot}`)}
                     />
-
                 </motion.div>
 
-                {/* Charts Row */}
-                <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                {/* --- CHARTS GRID --- */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    {/* Biểu đồ tròn: Tình trạng phân bổ */}
                     <ChartCard
-                        title="Tình trạng công ty"
-                        subtitle="Tỷ lệ sinh viên có/chưa có công ty"
-                       onDetail={() => navigate(`/internship-allocation/danh-sach-xac-nhan/${madot}`)}
+                        title="Tình Trạng Phân Bổ"
+                        subtitle="Tỷ lệ sinh viên đã có và chưa có công ty"
+                        icon={<Activity size={20} />}
+                        onDetail={() => navigate(`/internship-allocation/danh-sach-xac-nhan/${madot}`)}
                     >
-                       
-                        <ResponsiveContainer width="100%" height={300}>
+                        <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
-                                <Pie data={companyStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, value }) => `${name}: ${value}`}>
+                                <Pie 
+                                    data={companyStatusData} 
+                                    dataKey="value" 
+                                    nameKey="name" 
+                                    cx="50%" 
+                                    cy="50%" 
+                                    innerRadius={70} // Biểu đồ dạng Doughnut hiện đại
+                                    outerRadius={100} 
+                                    paddingAngle={5}
+                                >
                                     {companyStatusData.map((entry, index) => (
-                                        <Cell key={index} fill={entry.color} />
+                                        <Cell 
+                                            key={index} 
+                                            fill={entry.color} 
+                                            stroke="rgba(255,255,255,0.2)" 
+                                            strokeWidth={2}
+                                        />
                                     ))}
                                 </Pie>
-                                <Tooltip />
-                                <Legend />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend 
+                                    verticalAlign="bottom" 
+                                    height={36} 
+                                    iconType="circle"
+                                    formatter={(value) => <span className="text-slate-600 text-xs font-bold ml-1">{value}</span>}
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                     </ChartCard>
 
+                    {/* Biểu đồ cột: Kết quả phỏng vấn */}
                     <ChartCard
-                        title="Kết quả phỏng vấn"
-                        subtitle="Thống kê kết quả phỏng vấn"
+                        title="Kết Quả Phỏng Vấn"
+                        subtitle="Thống kê chi tiết kết quả từ doanh nghiệp"
+                        icon={<TrendingUp size={20} />}
                         onDetail={() => showDetail("Kết quả phỏng vấn")}
                     >
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={interviewResultData}>
-                                <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={interviewResultData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                <XAxis 
+                                    dataKey="name" 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: '#64748B', fontSize: 12, fontWeight: 600 }}
+                                    dy={10}
+                                />
+                                <YAxis 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: '#64748B', fontSize: 12 }} 
+                                />
+                                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F1F5F9', opacity: 0.5 }} />
+                                <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50} animationDuration={1500}>
                                     {interviewResultData.map((entry, index) => (
                                         <Cell key={index} fill={entry.color} />
                                     ))}
@@ -236,7 +345,7 @@ export default function Dashboard() {
                             </BarChart>
                         </ResponsiveContainer>
                     </ChartCard>
-                </motion.div>
+                </div>
             </div>
         </div>
     );

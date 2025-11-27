@@ -1,14 +1,26 @@
-import type { ReactNode } from "react";
 import { useAuth } from "../models/model-all";
+import type { ReactNode } from "react";
 
 interface Props {
-  func: string;
-  page: string;
+  trangtruycap: string;
+  matruycap: string;
   children: ReactNode;
 }
 
-export const Can: React.FC<Props> = ({ func, page, children }) => {
-  const { hasFunc } = useAuth();
-  if (!hasFunc(func, page)) return null;
+export const Can: React.FC<Props> = ({ trangtruycap, matruycap, children }) => {
+  const { user, hasFunc } = useAuth();
+
+  // Chưa login → không hiển thị
+  if (!user) return null;
+
+  // Admin hoặc "quản trị viên" → full quyền
+  const roleName = user.chucvu?.tenchucvu?.trim().toLowerCase();
+  if (roleName === "admin" || roleName === "quản trị viên") {
+    return <>{children}</>;
+  }
+
+  // Kiểm tra quyền bình thường
+  if (!hasFunc(trangtruycap, matruycap)) return null;
+
   return <>{children}</>;
 };

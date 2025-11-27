@@ -1,217 +1,327 @@
+"use client";
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { FaUsers, FaBuilding, FaCalendarAlt, FaChartBar, FaMapMarkedAlt, FaStar, FaUsersCog, FaBriefcase } from "react-icons/fa";
+import L from "leaflet";
+import { 
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
+    ResponsiveContainer, PieChart, Pie, Cell 
+} from "recharts";
+import { 
+    Users, Building2, MapPin, Activity, Award, Briefcase, 
+    TrendingUp, UserCheck 
+} from "lucide-react";
+import { motion } from "framer-motion";
 
-// Dữ liệu mẫu: Có thể thay thế bằng fetch từ backend
-const mockData = {
-  totalDots: 5, // Tổng đợt thực tập
-  totalSinhViens: 150, // Tổng sinh viên đăng ký
-  totalCongTys: 20, // Tổng công ty
-  totalGiangViens: 15, // Tổng giảng viên (bổ sung)
-  dangKyByDot: [ // Phân bố đăng ký theo đợt
-    { name: "Đợt 1", value: 30 },
-    { name: "Đợt 2", value: 50 },
-    { name: "Đợt 3", value: 40 },
-    { name: "Đợt 4", value: 20 },
-    { name: "Đợt 5", value: 10 },
-  ],
-  trangThaiDangKy: [ // Trạng thái đăng ký (Pie chart)
-    { name: "Đang thực tập", value: 80 },
-    { name: "Hoàn thành", value: 50 },
-    { name: "Chưa bắt đầu", value: 20 },
-  ],
-  topCongTys: [ // Thay thế tiến độ báo cáo bằng Top công ty (Bar chart)
-    { name: "Công ty A", sinhvien: 25 },
-    { name: "Công ty B", sinhvien: 20 },
-    { name: "Công ty C", sinhvien: 15 },
-    { name: "Công ty D", sinhvien: 10 },
-    { name: "Công ty E", sinhvien: 8 },
-  ],
-  diemChamTrungBinh: [ // Bổ sung: Phân bố điểm chấm (Pie chart)
-    { name: "Xuất sắc (>9)", value: 30 },
-    { name: "Tốt (7-9)", value: 70 },
-    { name: "Trung bình (5-7)", value: 40 },
-    { name: "Yếu (<5)", value: 10 },
-  ],
-  diemSoSanh: [ // Bổ sung: So sánh điểm trung bình công ty vs giảng viên (Bar chart grouped)
-    { category: "Chuyên cần/Trình bày", congTy: 8.2, giangVien: 7.5 },
-    { category: "Chuyên môn/Báo cáo", congTy: 8.8, giangVien: 8.0 },
-    { category: "Tổng trung bình", congTy: 8.5, giangVien: 7.8 },
-  ],
-  diaDiemData: [ // Dữ liệu bản đồ
-    { ten: "Công ty A - Hà Nội", lat: 21.0285, long: 105.8542, soluong: 15 },
-    { ten: "Công ty B - TP.HCM", lat: 10.8231, long: 106.6297, soluong: 20 },
-    { ten: "Công ty C - Đà Nẵng", lat: 16.0471, long: 108.2062, soluong: 10 },
-    // Thêm dữ liệu động từ API
-  ],
+// Import API (Đảm bảo đường dẫn import đúng)
+import { 
+    ThongKeCompany, 
+    ThongKeSoDoDot, 
+    Top5Company, 
+    DSCompanyPhanLoai1 
+} from "../api/batch-internship"; // Kiểm tra lại đường dẫn import này!
+
+// --- FIX LEAFLET ICON ISSUE ---
+// (Quan trọng: Cần import icon từ assets hoặc CDN để tránh lỗi 404 ảnh marker)
+import iconUrl from 'leaflet/dist/images/marker-icon.png';
+import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
+
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: iconRetinaUrl,
+    iconUrl: iconUrl,
+    shadowUrl: shadowUrl,
+});
+
+// --- COLORS PALETTE ---
+const COLORS = {
+    primary: "#2563EB",   // Blue-600
+    success: "#10B981",   // Emerald-500
+    warning: "#F59E0B",   // Amber-500
+    danger: "#EF4444",    // Red-500
+    purple: "#8B5CF6",    // Violet-500
+    chart: ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"]
 };
 
-const COLORS = ["#22c55e", "#3b82f6", "#eab308", "#ef4444", "#a855f7"]; // Màu tươi sáng: green, blue, yellow, red, purple
+// --- COMPONENTS ---
 
-export default function InternshipDashboard() {
-  const [data, ] = useState(mockData);
+const StatCard = ({ title, value, icon, colorClass, subText }: any) => (
+    <motion.div 
+        whileHover={{ y: -5 }}
+        className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden group"
+    >
+        <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform scale-150 ${colorClass.replace('text-', 'text-')}`}>
+            {icon}
+        </div>
+        <div className="flex justify-between items-start mb-4">
+            <div className={`p-3 rounded-xl bg-opacity-10 ${colorClass.replace('text-', 'bg-')} ${colorClass}`}>
+                {icon}
+            </div>
+        </div>
+        <h3 className="text-slate-500 text-sm font-medium uppercase tracking-wider mb-1">{title}</h3>
+        <p className="text-3xl font-black text-slate-800">{value}</p>
+        {subText && <p className="text-xs text-slate-400 mt-2">{subText}</p>}
+    </motion.div>
+);
 
-  useEffect(() => {
-    // Fetch dữ liệu thực từ API (thay thế mockData)
-    // Ví dụ: fetch('/api/thongke').then(res => res.json()).then(setData);
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-lg rounded-xl p-6 mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <FaChartBar className="text-yellow-300" /> Thống Kê Tổng Quan Tình Hình Thực Tập
-        </h1>
-        <p className="text-indigo-100 mt-2">Bảng điều khiển cung cấp cái nhìn tổng quan về các đợt thực tập, sinh viên, công ty và phân bố địa lý với dữ liệu động.</p>
-      </header>
-
-      {/* Overview Cards - Gradient tươi sáng, icon chuyên nghiệp */}
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-blue-400 to-indigo-600 text-white shadow-xl rounded-xl p-6 flex items-center gap-4 transform hover:scale-105 transition">
-          <FaCalendarAlt className="text-4xl text-yellow-300" />
-          <div>
-            <h2 className="text-xl font-semibold">Tổng Đợt Thực Tập</h2>
-            <p className="text-3xl font-bold"><span className="text-yellow-300">{data.totalDots}</span></p>
-          </div>
+const ChartContainer = ({ title, children, icon }: any) => (
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full">
+        <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+            {icon} {title}
+        </h3>
+        <div className="flex-1 min-h-[300px] w-full">
+            {children}
         </div>
-        <div className="bg-gradient-to-br from-green-400 to-teal-600 text-white shadow-xl rounded-xl p-6 flex items-center gap-4 transform hover:scale-105 transition">
-          <FaUsers className="text-4xl text-yellow-300" />
-          <div>
-            <h2 className="text-xl font-semibold">Tổng Sinh Viên Đăng Ký</h2>
-            <p className="text-3xl font-bold"><span className="text-yellow-300">{data.totalSinhViens}</span></p>
-          </div>
-        </div>
-        <div className="bg-gradient-to-br from-yellow-400 to-orange-600 text-white shadow-xl rounded-xl p-6 flex items-center gap-4 transform hover:scale-105 transition">
-          <FaBuilding className="text-4xl text-yellow-300" />
-          <div>
-            <h2 className="text-xl font-semibold">Tổng Công Ty Thực Tập</h2>
-            <p className="text-3xl font-bold"><span className="text-yellow-300">{data.totalCongTys}</span></p>
-          </div>
-        </div>
-        <div className="bg-gradient-to-br from-purple-400 to-pink-600 text-white shadow-xl rounded-xl p-6 flex items-center gap-4 transform hover:scale-105 transition">
-          <FaUsersCog className="text-4xl text-yellow-300" />
-          <div>
-            <h2 className="text-xl font-semibold">Tổng Giảng Viên Hướng Dẫn</h2>
-            <p className="text-3xl font-bold"><span className="text-yellow-300">{data.totalGiangViens}</span></p>
-          </div>
-        </div>
-      </section>
-
-      {/* Charts Section - Gradient background, icon, màu tươi sáng */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Bar Chart: Phân bố đăng ký theo đợt */}
-        <div className="bg-gradient-to-br from-indigo-50 to-blue-100 shadow-xl rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-indigo-800 mb-4 flex items-center gap-2">
-            <FaChartBar className="text-blue-500" /> Phân Bố Đăng Ký Theo Đợt
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.dangKyByDot}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="value" fill="#3b82f6" /> {/* Blue tươi */}
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Pie Chart: Trạng thái đăng ký */}
-        <div className="bg-gradient-to-br from-green-50 to-teal-100 shadow-xl rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-teal-800 mb-4 flex items-center gap-2">
-            <FaBriefcase className="text-green-500" /> Trạng Thái Đăng Ký Thực Tập
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={data.trangThaiDangKy} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#22c55e" label> {/* Green tươi */}
-                {data.trangThaiDangKy.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Thay thế Line Chart bằng Bar Chart: Top Công Ty */}
-        <div className="bg-gradient-to-br from-yellow-50 to-orange-100 shadow-xl rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-orange-800 mb-4 flex items-center gap-2">
-            <FaBuilding className="text-yellow-500" /> Top Công Ty Có Nhiều Sinh Viên Nhất
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.topCongTys}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="sinhvien" fill="#eab308" /> {/* Yellow tươi */}
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Bổ sung: Pie Chart Phân bố Điểm Chấm */}
-        <div className="bg-gradient-to-br from-purple-50 to-pink-100 shadow-xl rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-pink-800 mb-4 flex items-center gap-2">
-            <FaStar className="text-purple-500" /> Phân Bố Điểm Chấm Trung Bình
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={data.diemChamTrungBinh} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#a855f7" label> {/* Purple tươi */}
-                {data.diemChamTrungBinh.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Bổ sung mới: Bar Chart so sánh điểm trung bình Công ty vs Giảng viên */}
-        <div className="bg-gradient-to-br from-cyan-50 to-blue-100 shadow-xl rounded-xl p-6 lg:col-span-2">
-          <h2 className="text-xl font-semibold text-cyan-800 mb-4 flex items-center gap-2">
-            <FaStar className="text-cyan-500" /> So Sánh Điểm Trung Bình (Công Ty vs Giảng Viên)
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.diemSoSanh}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="category" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="congTy" fill="#3b82f6" name="Điểm Công Ty" /> {/* Blue cho Công ty */}
-              <Bar dataKey="giangVien" fill="#a855f7" name="Điểm Giảng Viên" /> {/* Purple cho Giảng viên */}
-            </BarChart>
-          </ResponsiveContainer>
-          <p className="text-gray-600 mt-2">Biểu đồ so sánh điểm trung bình từ công ty (diemchuyencan, diemchuyenmon) và giảng viên (diemtrinhbay, diembaocao) để nhận biết sự khác biệt.</p>
-        </div>
-      </section>
-
-      {/* Map Section - Gradient background */}
-      <section className="bg-gradient-to-br from-red-50 to-orange-100 shadow-xl rounded-xl p-6">
-        <h2 className="text-xl font-semibold text-orange-800 mb-4 flex items-center gap-2">
-          <FaMapMarkedAlt className="text-red-500" /> Phân Bố Địa Lý Theo Tỉnh/Thành Phố
-        </h2>
-        <div className="h-[500px] rounded-lg overflow-hidden shadow-inner">
-          <MapContainer center={[16.0471, 108.2062]} zoom={5} style={{ height: "100%", width: "100%" }}>
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            {data.diaDiemData.map((item, index) => (
-              <Marker key={index} position={[item.lat, item.long]}>
-                <Popup>
-                  <strong className="text-indigo-800">{item.ten}</strong><br />
-                  Số lượng sinh viên: <span className="font-bold text-green-600">{item.soluong}</span>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        </div>
-        <p className="text-gray-700 mt-2">Bản đồ hiển thị vị trí công ty thực tập và số lượng sinh viên phân bổ (dữ liệu động từ lat/long trong model).</p>
-      </section>
     </div>
-  );
+);
+
+// --- MAIN PAGE ---
+
+export default function CompanyStatisticsDashboard() {
+    // Khởi tạo state với giá trị mặc định an toàn
+    const [stats, setStats] = useState<any>({
+        tongdot: 0,
+        tongsinhvien: 0,
+        congty: { tongcongtycuasinhvien: 0, tongcongtycuakhoa: 0, tongcongtygioithieu: 0 },
+        giangvien: { tonggiangvienhoatdong: 0, tonggiangvienkhonghoatdong: 0 }
+    });
+    const [chartDataDot, setChartDataDot] = useState<any[]>([]);
+    const [topCompanies, setTopCompanies] = useState<any[]>([]);
+    const [mapData, setMapData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                // Gọi song song các API
+                const [resStats, resDot, resTop, resMap] = await Promise.all([
+                    ThongKeCompany(),
+                    ThongKeSoDoDot(),
+                    Top5Company(),
+                    DSCompanyPhanLoai1()
+                ]);
+
+                // Cập nhật state nếu có dữ liệu
+                if (resStats) setStats(resStats);
+                if (Array.isArray(resDot)) setChartDataDot(resDot);
+                if (Array.isArray(resTop)) setTopCompanies(resTop);
+                
+                // Xử lý dữ liệu bản đồ: Lọc các công ty có tọa độ hợp lệ
+                if (Array.isArray(resMap)) {
+                    const validMapData = resMap.filter((c: any) => 
+                        c.lat && c.long && !isNaN(parseFloat(c.lat)) && !isNaN(parseFloat(c.long))
+                    );
+                    setMapData(validMapData);
+                }
+
+            } catch (error) {
+                console.error("Lỗi tải dữ liệu thống kê:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+                    <span className="text-slate-500 font-medium">Đang tổng hợp dữ liệu...</span>
+                </div>
+            </div>
+        );
+    }
+
+    // Dữ liệu Pie Chart (Phân loại công ty)
+    const pieData = [
+        { name: "Sinh viên tự tìm", value: stats.congty?.tongcongtycuasinhvien || 0 },
+        { name: "Khoa phân bổ", value: stats.congty?.tongcongtycuakhoa || 0 },
+        { name: "Được giới thiệu", value: stats.congty?.tongcongtygioithieu || 0 },
+    ];
+
+    return (
+        <div className="min-h-screen bg-slate-50/50 p-6 font-sans text-slate-800">
+            <div className="max-w-[1920px] mx-auto space-y-8">
+                
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-8">
+                    <div className="p-3 bg-blue-600 rounded-lg shadow-lg shadow-blue-500/30 text-white">
+                        <Activity size={28} />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-extrabold text-slate-800">Thống Kê Doanh Nghiệp & Thực Tập</h1>
+                        <p className="text-slate-500 text-sm">Tổng quan số liệu về công ty, sinh viên và phân bố địa lý.</p>
+                    </div>
+                </div>
+
+                {/* 1. Stat Cards Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <StatCard 
+                        title="Tổng đợt thực tập" 
+                        value={stats?.tongdot || 0} 
+                        icon={<Briefcase size={24} />} 
+                        colorClass="text-blue-600" 
+                    />
+                    <StatCard 
+                        title="Tổng sinh viên" 
+                        value={stats?.tongsinhvien || 0} 
+                        icon={<Users size={24} />} 
+                        colorClass="text-emerald-500" 
+                    />
+                    <StatCard 
+                        title="Giảng viên hoạt động" 
+                        value={stats?.giangvien?.tonggiangvienhoatdong || 0} 
+                        subText={`Không hoạt động: ${stats?.giangvien?.tonggiangvienkhonghoatdong || 0}`}
+                        icon={<UserCheck size={24} />} 
+                        colorClass="text-purple-500" 
+                    />
+                    <StatCard 
+                        title="Tổng công ty" 
+                        value={(stats?.congty?.tongcongtycuasinhvien || 0) + (stats?.congty?.tongcongtycuakhoa || 0) + (stats?.congty?.tongcongtygioithieu || 0)} 
+                        icon={<Building2 size={24} />} 
+                        colorClass="text-orange-500" 
+                    />
+                </div>
+
+                {/* 2. Charts Row */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    
+                    {/* Cột 1: Biểu đồ cột chồng (Đợt thực tập) */}
+                    <div className="xl:col-span-2">
+                        <ChartContainer title="Tình hình đăng ký theo Đợt" icon={<TrendingUp className="text-blue-500" />}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartDataDot} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                    <XAxis dataKey="madot" axisLine={false} tickLine={false} tick={{ fill: '#64748B' }} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B' }} />
+                                    <Tooltip 
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                                        cursor={{ fill: '#F1F5F9' }}
+                                    />
+                                    <Legend />
+                                    <Bar dataKey="tutim" name="Tự tìm" stackId="a" fill={COLORS.primary} radius={[0, 0, 4, 4]} barSize={40} />
+                                    <Bar dataKey="khoaphanbo" name="Khoa phân bổ" stackId="a" fill={COLORS.success} radius={[4, 4, 0, 0]} barSize={40} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </div>
+
+                    {/* Cột 2: Biểu đồ tròn (Nguồn công ty) */}
+                    <div className="xl:col-span-1">
+                        <ChartContainer title="Cơ cấu nguồn Công ty" icon={<Activity className="text-emerald-500" />}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={pieData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={100}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {pieData.map((_entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS.chart[index % COLORS.chart.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </div>
+                </div>
+
+                {/* 3. Top Companies & Map Row */}
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    
+                    {/* Top 5 Công ty */}
+                    <div className="xl:col-span-1">
+                        <ChartContainer title="Top 5 Doanh nghiệp tiêu biểu" icon={<Award className="text-yellow-500" />}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={topCompanies} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
+                                    <XAxis type="number" hide />
+                                    <YAxis 
+                                        dataKey="tencongty" 
+                                        type="category" 
+                                        width={150} 
+                                        tick={{ fontSize: 11, fill: '#475569' }} 
+                                        interval={0}
+                                    />
+                                    <Tooltip cursor={{ fill: 'transparent' }} />
+                                    <Bar dataKey="soluong_sinhvien" name="Số lượng SV" fill={COLORS.purple} radius={[0, 4, 4, 0]} barSize={30}>
+                                        {topCompanies.map((_entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS.chart[index % COLORS.chart.length]} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </div>
+
+                    {/* Bản đồ */}
+                    <div className="xl:col-span-2">
+                        <div className="bg-white p-1 rounded-2xl shadow-sm border border-slate-100 h-[500px] relative overflow-hidden">
+                            <div className="absolute top-4 left-4 z-[400] bg-white/90 backdrop-blur px-4 py-2 rounded-lg shadow-md border border-slate-200">
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                    <MapPin className="text-red-500" size={18} /> Bản đồ Doanh nghiệp (Phân loại 1)
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">Hiển thị {mapData.length} địa điểm đã xác thực</p>
+                            </div>
+                            
+                            {/* Kiểm tra có dữ liệu bản đồ không trước khi render MapContainer */}
+                            {mapData.length > 0 ? (
+                                <MapContainer 
+                                    center={[10.762622, 106.660172]} // Mặc định HCM
+                                    zoom={10} 
+                                    scrollWheelZoom={false}
+                                    style={{ height: "100%", width: "100%", borderRadius: "1rem" }}
+                                >
+                                    <TileLayer
+                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                    />
+                                    {mapData.map((company, index) => (
+                                        <Marker 
+                                            key={index} 
+                                            position={[parseFloat(company.lat), parseFloat(company.long)]}
+                                        >
+                                            <Popup>
+                                                <div className="p-1 min-w-[200px]">
+                                                    <h4 className="font-bold text-blue-700 text-sm mb-1">{company.tencongty}</h4>
+                                                    <p className="text-xs text-slate-600 mb-1 flex items-start gap-1">
+                                                        <MapPin size={10} className="mt-0.5" /> {company.diachi}
+                                                    </p>
+                                                    <div className="mt-2 pt-2 border-t border-slate-100 flex justify-between items-center">
+                                                        <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold">
+                                                            Đang hoạt động
+                                                        </span>
+                                                        {company.linhvuc && (
+                                                            <span className="text-[10px] text-slate-400 italic truncate max-w-[100px]">
+                                                                {company.linhvuc}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </Popup>
+                                        </Marker>
+                                    ))}
+                                </MapContainer>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-slate-400 bg-slate-50">
+                                    Không có dữ liệu bản đồ
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    );
 }

@@ -13,12 +13,13 @@ import {
 import NguoiDungFormModal from "../function/form-nguoidung";
 import NguoiDungDetailModal from "../function/form-chitiet-nguoidung";
 
+// --- Custom Modal Wrapper ---
 const CustomModal = ({ show, title, onClose, children, sizeClass = "max-w-xl" }: { show: boolean, title: string, onClose: () => void, children: React.ReactNode, sizeClass?: string }) => {
     if (!show) return null;
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-            <div className={`bg-white rounded-xl shadow-2xl w-full ${sizeClass} max-h-[95vh] overflow-hidden`}>
-                <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-indigo-50/70">
+            <div className={`bg-white rounded-xl shadow-2xl w-full ${sizeClass} max-h-[95vh] overflow-hidden flex flex-col`}>
+                <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-indigo-50/70 shrink-0">
                     <h3 className="text-xl font-bold text-indigo-700">{title}</h3>
                     <button onClick={onClose} className="p-2 text-gray-500 hover:bg-indigo-100 rounded-full transition-colors">
                         <FaTimes className="w-5 h-5" />
@@ -33,18 +34,21 @@ const CustomModal = ({ show, title, onClose, children, sizeClass = "max-w-xl" }:
 };
 // --- HẾT Custom Modal Wrapper ---
 
-
 export default function QuanLyNguoiDung() {
+    // --- State ---
     const [nguoiDungList, setNguoiDungList] = useState<NguoiDung[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // State cho Modal Thêm/Sửa
     const [modalOpen, setModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    
+    // State cho Modal Chi Tiết
     const [detailModalOpen, setDetailModalOpen] = useState(false);
     const [selectedNguoiDung, setSelectedNguoiDung] = useState<NguoiDung | null>(null);
 
-    // ✅ Fetch Data
+    // --- Fetch Data ---
     const fetchData = async () => {
         setLoading(true);
         setError(null);
@@ -62,7 +66,7 @@ export default function QuanLyNguoiDung() {
         fetchData();
     }, []);
 
-    // ✅ Handle Actions
+    // --- Handlers ---
     const handleAdd = () => {
         setIsEditing(false);
         setSelectedNguoiDung(null);
@@ -84,7 +88,6 @@ export default function QuanLyNguoiDung() {
         if (window.confirm(`Bạn có chắc chắn muốn xóa người dùng [${manguoidung}] - ${tennguoidung} không?`)) {
             setLoading(true);
             try {
-                // Sử dụng hàm deleteNguoiDung đã ghi nhớ
                 await deleteNguoiDung(manguoidung);
                 alert(`Xóa người dùng ${tennguoidung} thành công.`);
                 fetchData(); // Tải lại dữ liệu sau khi xóa
@@ -97,12 +100,11 @@ export default function QuanLyNguoiDung() {
     };
 
     const handleSuccess = () => {
-        // Đóng modal và tải lại dữ liệu khi thêm/sửa thành công
         setModalOpen(false);
         fetchData(); 
     };
 
-
+    // --- Render ---
     return (
         <div className="p-6 bg-gradient-to-br from-slate-50 to-indigo-50 min-h-screen font-sans">
 
@@ -137,11 +139,9 @@ export default function QuanLyNguoiDung() {
                                 <th className="px-6 py-4 w-[20%] min-w-[180px]">
                                     <div className="flex items-center gap-2"><FaUser className="text-indigo-400" /> Họ tên</div>
                                 </th>
-                            
                                 <th className="px-6 py-4 w-[15%] min-w-[100px]">
                                     <div className="flex items-center gap-2"><FaUserTie className="text-indigo-400" /> Chức vụ</div>
                                 </th>
-                               
                                 <th className="px-6 py-4 text-center w-[10%] min-w-[140px]">
                                     <div className="flex flex-col items-center"><FaCogs className="text-indigo-400" /> Hành động</div>
                                 </th>
@@ -152,56 +152,43 @@ export default function QuanLyNguoiDung() {
                         <tbody className="divide-y divide-gray-100 text-sm text-slate-700">
                             {loading && (
                                 <tr>
-                                    <td colSpan={7} className="text-center py-8 text-indigo-500 font-medium">
+                                    <td colSpan={5} className="text-center py-8 text-indigo-500 font-medium">
                                         <FaSpinner className="inline animate-spin mr-2" /> Đang tải dữ liệu người dùng...
                                     </td>
                                 </tr>
                             )}
                             {error && (
                                 <tr>
-                                    <td colSpan={7} className="text-center py-8 text-red-500 font-medium bg-red-50">
+                                    <td colSpan={5} className="text-center py-8 text-red-500 font-medium bg-red-50">
                                         Lỗi: {error}
                                     </td>
                                 </tr>
                             )}
                             {!loading && nguoiDungList.length === 0 && !error && (
                                 <tr>
-                                    <td colSpan={7} className="text-center py-8 text-gray-400 italic bg-gray-50/50">
+                                    <td colSpan={5} className="text-center py-8 text-gray-400 italic bg-gray-50/50">
                                         Không có dữ liệu người dùng nào.
                                     </td>
                                 </tr>
                             )}
                             {nguoiDungList.length > 0 && nguoiDungList.map((item) => (
                                 <tr key={item.manguoidung} className="hover:bg-gray-50 transition-colors group">
-
                                     <td className="px-6 py-4 font-mono text-gray-700 font-semibold">
                                         {item.manguoidung}
                                     </td>
-
                                     <td className="px-6 py-4 text-gray-800 font-medium">
                                         {item.taikhoan}
                                     </td>
-
                                     <td className="px-6 py-4 text-gray-800">
                                         {item.tennguoidung}
                                     </td>
-                                    
-                                  
-                                    
-                                    {/* Giả định: model NguoiDung có thuộc tính 'chucvu' là object hoặc có 'tenchucvu' */}
                                     <td className="px-6 py-4 text-gray-600">
-                                        {/* Bạn có thể cần điều chỉnh cách hiển thị chức vụ tùy theo cấu trúc model */}
                                         <span className="inline-block bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-0.5 rounded-full">
                                             {item.chucvu?.tenchucvu || item.machucvu || 'N/A'}
                                         </span>
                                     </td>
-
-                                  
-
-                                    {/* Hành động */}
                                     <td className="px-6 py-4 text-center">
                                         <div className="flex flex-nowrap justify-center items-center gap-2">
-
                                             {/* Nút Xem Chi tiết */}
                                             <button
                                                 onClick={() => handleDetail(item)}
@@ -210,7 +197,6 @@ export default function QuanLyNguoiDung() {
                                             >
                                                 <FaEye className="w-3.5 h-3.5" />
                                             </button>
-
                                             {/* Nút Sửa */}
                                             <button
                                                 onClick={() => handleEdit(item)}
@@ -219,7 +205,6 @@ export default function QuanLyNguoiDung() {
                                             >
                                                 <FaEdit className="w-3.5 h-3.5" />
                                             </button>
-
                                             {/* Nút Xóa */}
                                             <button
                                                 onClick={() => handleDelete(item.manguoidung, item.tennguoidung||"")}
@@ -228,30 +213,25 @@ export default function QuanLyNguoiDung() {
                                             >
                                                 <FaTrash className="w-3.5 h-3.5" />
                                             </button>
-
                                         </div>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
-
                     </table>
                 </div>
-
-                {/* Footer thông tin */}
                 <div className="px-6 py-3 border-t border-gray-100 text-xs text-gray-500 bg-gray-50/50">
-                    Tổng số người dùng: **{nguoiDungList.length}**
+                    Tổng số người dùng: <strong>{nguoiDungList.length}</strong>
                 </div>
             </div>
 
-            {/* Modal Thêm/Sửa Người Dùng */}
+            {/* --- MODAL 1: Thêm/Sửa Người Dùng --- */}
             <CustomModal
                 show={modalOpen}
                 title={isEditing ? "Cập nhật Người Dùng" : "Thêm mới Người Dùng"}
                 onClose={() => setModalOpen(false)}
                 sizeClass="max-w-xl"
             >
-                {/* Component Modal Form (sẽ được bạn cung cấp) */}
                 <NguoiDungFormModal
                     isEdit={isEditing}
                     initialData={selectedNguoiDung}
@@ -260,15 +240,14 @@ export default function QuanLyNguoiDung() {
                 />
             </CustomModal>
             
-            {/* Modal Chi Tiết Người Dùng */}
+            {/* --- MODAL 2: Chi Tiết Người Dùng --- */}
             {selectedNguoiDung && (
                 <CustomModal
                     show={detailModalOpen}
                     title={`Chi Tiết Người Dùng [${selectedNguoiDung.manguoidung}]`}
                     onClose={() => setDetailModalOpen(false)}
-                    sizeClass="max-w-4xl" // Cho phép modal chi tiết rộng hơn nếu cần
+                    sizeClass="max-w-4xl" // Modal rộng hơn để hiển thị danh sách quyền
                 >
-                    {/* Component Modal Chi Tiết (sẽ được bạn cung cấp) */}
                     <NguoiDungDetailModal data={selectedNguoiDung} />
                 </CustomModal>
             )}

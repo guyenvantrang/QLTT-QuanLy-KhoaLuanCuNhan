@@ -1,1 +1,20 @@
 @import "tailwindcss";
+/* Tùy chỉnh thanh cuộn (Scrollbar) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px; /* Độ rộng của thanh cuộn */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9; /* Màu nền đường ray (slate-100) */
+  border-radius: 0 0 12px 0; /* Bo góc dưới cùng bên phải cho khớp modal */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1; /* Màu thanh kéo mặc định (slate-300) */
+  border-radius: 10px; /* Bo tròn thanh kéo */
+  border: 2px solid #f1f5f9; /* Tạo khoảng hở giúp thanh kéo nhìn thanh thoát hơn */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #3b82f6; /* Đổi màu xanh dương (blue-500) khi hover */
+}

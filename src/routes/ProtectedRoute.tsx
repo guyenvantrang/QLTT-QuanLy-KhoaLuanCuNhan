@@ -2,29 +2,27 @@ import { useAuth } from "../models/model-all";
 import { useState } from "react";
 import type { JSX } from "react";
 import toast from "react-hot-toast";
-
 interface Props {
-  accessCode: string; // mã trang (diachitruycap)
+  trangtruycap: string;   // ví dụ: "/home"
+  matruycap: string;      // ví dụ: "hienthi_home"
   children: JSX.Element;
 }
 
-const ProtectedRoute: React.FC<Props> = ({ accessCode, children }) => {
-  const { user, hasPage } = useAuth();
+const ProtectedRoute: React.FC<Props> = ({ trangtruycap, matruycap, children }) => {
+  const { user, hasFunc } = useAuth();
   const [alerted, setAlerted] = useState(false);
 
-  // Nếu chưa login, không hiển thị gì
   if (!user) return null;
 
-  // Nếu không có quyền
-  if (!hasPage(accessCode)) {
+  if (!hasFunc(trangtruycap, matruycap)) {
     if (!alerted) {
       toast.error("Bạn không có quyền truy cập trang này!");
       setAlerted(true);
     }
-    return null; // không render children
+    return null;
   }
 
-  return children; // render nếu có quyền
+  return children;
 };
 
-export default ProtectedRoute;
+export default ProtectedRoute; 

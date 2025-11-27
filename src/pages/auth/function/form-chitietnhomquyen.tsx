@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { FaUserShield, FaUsers, FaTools, FaCalendarAlt, FaQuoteLeft } from 'react-icons/fa';
+import { FaUserShield, FaUsers, FaTools, FaCalendarAlt, FaQuoteLeft, FaLink, FaKey } from 'react-icons/fa';
 import type { NhomQuyen, NguoiDung, ChucNang } from '../../../models/model-all';
 
 interface NhomQuyenDetailModalProps {
@@ -7,17 +7,24 @@ interface NhomQuyenDetailModalProps {
 }
 
 const NhomQuyenDetailModal: React.FC<NhomQuyenDetailModalProps> = ({ data }) => {
-    const { manhomquyen, tennhom, mota, ngaytao, chitietnhomquyen } = data;
+    // Destructuring theo đúng Model PhanQuyenModels.ts
+    const { manhomquyen, tennhom, mota, ngaytao, chitietnhomquyennguoidung, chitietnhomquyenchucnang } = data;
 
     // --- LOGIC TÍNH TOÁN ---
-    // Tách danh sách người dùng và chức năng duy nhất từ bảng ChiTietNhomQuyen
     const stats = useMemo(() => {
         const users = new Map<string, NguoiDung>();
         const functions = new Map<string, ChucNang>();
 
-        if (chitietnhomquyen) {
-            chitietnhomquyen.forEach(ct => {
+        // 1. Lấy danh sách Người dùng
+        if (chitietnhomquyennguoidung) {
+            chitietnhomquyennguoidung.forEach(ct => {
                 if (ct.nguoidung) users.set(ct.manguoidung, ct.nguoidung);
+            });
+        }
+
+        // 2. Lấy danh sách Chức năng
+        if (chitietnhomquyenchucnang) {
+            chitietnhomquyenchucnang.forEach(ct => {
                 if (ct.chucnang) functions.set(ct.machucnang, ct.chucnang);
             });
         }
@@ -26,7 +33,7 @@ const NhomQuyenDetailModal: React.FC<NhomQuyenDetailModalProps> = ({ data }) => 
             users: Array.from(users.values()),
             functions: Array.from(functions.values())
         };
-    }, [chitietnhomquyen]);
+    }, [chitietnhomquyennguoidung, chitietnhomquyenchucnang]);
 
     return (
         <div className="space-y-6">
@@ -57,7 +64,7 @@ const NhomQuyenDetailModal: React.FC<NhomQuyenDetailModalProps> = ({ data }) => 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 
                 {/* Cột 1: Danh sách Người dùng trong nhóm */}
-                <div className="border border-gray-200 rounded-xl overflow-hidden flex flex-col h-[350px]">
+                <div className="border border-gray-200 rounded-xl overflow-hidden flex flex-col h-[400px]">
                     <div className="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center">
                         <h4 className="font-bold text-gray-700 flex items-center gap-2">
                             <FaUsers className="text-green-500"/> Thành viên ({stats.users.length})
@@ -73,7 +80,7 @@ const NhomQuyenDetailModal: React.FC<NhomQuyenDetailModalProps> = ({ data }) => 
                                         </div>
                                         <div className="min-w-0">
                                             <p className="text-sm font-medium text-gray-800 truncate">{user.tennguoidung}</p>
-                                            <p className="text-xs text-gray-500 truncate">{user.manguoidung || user.taikhoan}</p>
+                                            <p className="text-xs text-gray-500 truncate">{user.manguoidung} - {user.taikhoan}</p>
                                         </div>
                                     </li>
                                 ))}
@@ -88,7 +95,7 @@ const NhomQuyenDetailModal: React.FC<NhomQuyenDetailModalProps> = ({ data }) => 
                 </div>
 
                 {/* Cột 2: Danh sách Chức năng của nhóm */}
-                <div className="border border-gray-200 rounded-xl overflow-hidden flex flex-col h-[350px]">
+                <div className="border border-gray-200 rounded-xl overflow-hidden flex flex-col h-[400px]">
                     <div className="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center">
                         <h4 className="font-bold text-gray-700 flex items-center gap-2">
                             <FaTools className="text-amber-500"/> Quyền hạn ({stats.functions.length})
@@ -98,15 +105,26 @@ const NhomQuyenDetailModal: React.FC<NhomQuyenDetailModalProps> = ({ data }) => 
                         {stats.functions.length > 0 ? (
                             <ul className="space-y-2">
                                 {stats.functions.map(func => (
-                                    <li key={func.machucnang} className="flex items-start gap-2 p-2 hover:bg-amber-50/50 rounded-lg border border-transparent hover:border-amber-100 transition-all">
-                                        <div className="mt-1">
-                                            <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
+                                    <li key={func.machucnang} className="flex items-start gap-2 p-2.5 hover:bg-amber-50/50 rounded-lg border border-transparent hover:border-amber-100 transition-all">
+                                        <div className="mt-1.5">
+                                            <div className="w-1.5 h-1.5 bg-amber-400 rounded-full"></div>
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-800">{func.tenchucnang}</p>
-                                            <p className="text-[10px] font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded w-fit mt-0.5">
-                                                {func.matruycap}
-                                            </p>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-bold text-gray-700">{func.tenchucnang}</p>
+                                            
+                                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                {/* Mã truy cập */}
+                                                <span className="flex items-center gap-1 text-[10px] font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
+                                                    <FaKey className="text-[8px]"/> {func.matruycap}
+                                                </span>
+
+                                                {/* Trang truy cập (URL) */}
+                                                {func.trangtruycap && (
+                                                    <span className="flex items-center gap-1 text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 truncate max-w-[150px]" title={func.trangtruycap}>
+                                                        <FaLink className="text-[8px]"/> {func.trangtruycap}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </li>
                                 ))}

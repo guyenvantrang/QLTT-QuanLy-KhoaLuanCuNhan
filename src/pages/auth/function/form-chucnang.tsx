@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { FaSave, FaTimes, FaGlobe, FaKey, FaLayerGroup, FaInfoCircle, FaHashtag, FaSpinner } from "react-icons/fa";
+import { FaSave, FaTimes, FaGlobe, FaKey, FaLayerGroup, FaInfoCircle, FaHashtag, FaSpinner, FaLink } from "react-icons/fa";
 import toast from 'react-hot-toast';
-import type { ChucNang, TrangWeb } from "../../../models/model-all";
-import { addChucNang, updateChucNang , getAllTrangWeb} from "../../../api/login";
-
+import type { ChucNang } from "../../../models/model-all"; // Đảm bảo model đã có trangtruycap?: string
+import { addChucNang, updateChucNang } from "../../../api/login";
 
 interface ChucNangFormModalProps {
     isEdit: boolean;
@@ -13,42 +12,32 @@ interface ChucNangFormModalProps {
 }
 
 const ChucNangFormModal: React.FC<ChucNangFormModalProps> = ({ isEdit, initialData, onClose, onSuccess }) => {
+    
+    // ✅ State form theo cấu trúc mới
     const [formData, setFormData] = useState<Partial<ChucNang>>({
         machucnang: '',
         tenchucnang: '',
-        matruycap: '', // Mã code dùng để check quyền trong code (VD: USER_VIEW)
-        matrang: '',   // Foreign Key
+        matruycap: '',   // Mã code check quyền (VD: USER_VIEW)
+        trangtruycap: '', // ✅ Thay thế matrang: Chuỗi đường dẫn (VD: /admin/users)
         mota: ''
     });
     
-    const [trangWebList, setTrangWebList] = useState<TrangWeb[]>([]);
     const [loading, setLoading] = useState(false);
 
-    // 1. Fetch danh sách Trang Web để đưa vào Select Box
-    useEffect(() => {
-        const fetchTrangWeb = async () => {
-            try {
-                const data = await getAllTrangWeb();
-                setTrangWebList(data || []);
-            } catch (error) {
-                console.error("Lỗi tải trang web", error);
-                toast.error("Không thể tải danh sách trang web");
-            }
-        };
-        fetchTrangWeb();
-    }, []);
-
-    // 2. Fill data nếu là Edit
+    // 1. Fill data nếu là Edit
     useEffect(() => {
         if (isEdit && initialData) {
             setFormData({
-                ...initialData,
-                matrang: initialData.matrang || '', // Đảm bảo không undefined
+                machucnang: initialData.machucnang,
+                tenchucnang: initialData.tenchucnang || '',
+                matruycap: initialData.matruycap || '',
+                trangtruycap: initialData.trangtruycap || '', // ✅ Map dữ liệu trangtruycap
+                mota: initialData.mota || ''
             });
         }
     }, [isEdit, initialData]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
@@ -57,8 +46,8 @@ const ChucNangFormModal: React.FC<ChucNangFormModalProps> = ({ isEdit, initialDa
         setLoading(true);
 
         // Validation
-        if (!formData.tenchucnang || !formData.matruycap || !formData.matrang) {
-            toast.error("Vui lòng điền Tên, Mã truy cập và chọn Trang web!");
+        if (!formData.tenchucnang || !formData.matruycap) {
+            toast.error("Vui lòng điền Tên chức năng và Mã truy cập!");
             setLoading(false);
             return;
         }
@@ -68,9 +57,8 @@ const ChucNangFormModal: React.FC<ChucNangFormModalProps> = ({ isEdit, initialDa
             const payload = {
                 tenchucnang: formData.tenchucnang,
                 matruycap: formData.matruycap,
-                matrang: formData.matrang,
+                trangtruycap: formData.trangtruycap, // ✅ Gửi chuỗi trangtruycap
                 mota: formData.mota
-                // Không gửi machucnang khi Add vì tự động sinh
             };
 
             const promise = isEdit 
@@ -85,7 +73,7 @@ const ChucNangFormModal: React.FC<ChucNangFormModalProps> = ({ isEdit, initialDa
 
             onSuccess();
         } catch (err) {
-            // Error handled by toast
+            // Error handled by toast promise
         } finally {
             setLoading(false);
         }
@@ -97,7 +85,7 @@ const ChucNangFormModal: React.FC<ChucNangFormModalProps> = ({ isEdit, initialDa
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Cột Trái */}
                 <div className="space-y-4">
-                    {/* Mã chức năng (Chỉ hiện khi Edit) */}
+                    {/* Mã chức năng (Read-only) */}
                     {isEdit && (
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1">
@@ -120,7 +108,7 @@ const ChucNangFormModal: React.FC<ChucNangFormModalProps> = ({ isEdit, initialDa
                             name="tenchucnang"
                             value={formData.tenchucnang}
                             onChange={handleChange}
-                            placeholder="VD: Xem danh sách người dùng"
+                            placeholder="VD: Quản lý người dùng"
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 outline-none transition-all"
                         />
                     </div>
@@ -134,38 +122,33 @@ const ChucNangFormModal: React.FC<ChucNangFormModalProps> = ({ isEdit, initialDa
                             name="matruycap"
                             value={formData.matruycap}
                             onChange={handleChange}
-                            placeholder="VD: USER_VIEW, USER_EDIT"
+                            placeholder="VD: USER_VIEW"
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 font-mono text-sm focus:ring-2 focus:ring-indigo-400 outline-none transition-all bg-slate-50"
                         />
-                        <p className="text-[10px] text-gray-400 mt-1 italic">Mã này dùng để kiểm tra quyền trong source code.</p>
+                        <p className="text-[10px] text-gray-400 mt-1 italic">Dùng để phân quyền trong code (Unique).</p>
                     </div>
                 </div>
 
                 {/* Cột Phải */}
                 <div className="space-y-4">
-                    {/* Chọn Trang Web */}
+                    {/* Trang Truy Cập (Input Text thay vì Select) */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                            <FaGlobe className="text-indigo-500"/> Thuộc Trang Web <span className="text-red-500">*</span>
+                            <FaGlobe className="text-indigo-500"/> Trang Truy Cập / URL
                         </label>
                         <div className="relative">
-                            <select
-                                name="matrang"
-                                value={formData.matrang}
-                                onChange={handleChange}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 appearance-none bg-white focus:ring-2 focus:ring-indigo-400 outline-none transition-all"
-                            >
-                                <option value="">-- Chọn trang web --</option>
-                                {trangWebList.map(web => (
-                                    <option key={web.matrang} value={web.matrang}>
-                                        {web.tentrang} ({web.diachitruycap || web.diachitruycap})
-                                    </option>
-                                ))}
-                            </select>
-                            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <FaLink className="text-gray-400" />
                             </div>
+                            <input
+                                name="trangtruycap"
+                                value={formData.trangtruycap}
+                                onChange={handleChange}
+                                placeholder="VD: /admin/users hoặc https://..."
+                                className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 focus:ring-2 focus:ring-indigo-400 outline-none transition-all"
+                            />
                         </div>
+                        <p className="text-[10px] text-gray-400 mt-1 italic">Đường dẫn trang web liên quan (nếu có).</p>
                     </div>
 
                     {/* Mô tả */}

@@ -1,6 +1,7 @@
 import { login } from "../api/login";
 import { type NavigateFunction } from "react-router-dom";
 import { useAuth } from "../models/model-all";
+import type { NguoiDung } from "../models/model-all";
 
 export async function submitLoginForm(
   e: React.FormEvent<HTMLFormElement>,
@@ -8,8 +9,10 @@ export async function submitLoginForm(
   loginContext: ReturnType<typeof useAuth>
 ) {
   e.preventDefault();
+
   const form = e.currentTarget;
   const formData = new FormData(form);
+
   const taikhoan = (formData.get("username") as string)?.trim();
   const matkhau = (formData.get("password") as string)?.trim();
 
@@ -19,21 +22,15 @@ export async function submitLoginForm(
   }
 
   try {
-    const res = await login(taikhoan, matkhau);
+    const res = (await login(taikhoan, matkhau)) as NguoiDung;
 
     if (!res) {
       alert("Tài khoản hoặc mật khẩu không chính xác");
       return;
     }
-    alert("Chi tiết nhóm quyền: " + JSON.stringify(res.chitietnhomquyen, null, 2));
-    // Chuyển đổi permissions
-    alert(res)
-    const permissions = {
-      pages: res.chitietnhomquyen?.map((c: any) => c.trangweb).filter(Boolean) || [],
-      functions: res.chitietnhomquyen?.map((c: any) => c.chucnang).filter(Boolean) || [],
-    };
 
-    loginContext.login(res, permissions);
+    // ==== Lưu user và tự động flatten permissions trong context ====
+    loginContext.login(res);
 
     navigate("/home");
   } catch (err: any) {

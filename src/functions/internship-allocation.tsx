@@ -2,12 +2,16 @@ import type { PhanBoSinhVien } from "../models/model-all";
 import {
     GetAll, Create, update, deletes, phanBoSinhVien, phanBoSinhVienTheoDiaChi,
     GetAllocationByStudent, xacNhanRot, chuyenDotMoi, traLoiPhanHoi,
-    xacnhandau , phanbogiaovien
+    xacnhandau, phanbogiaovien, phanBoSinhVienTheochuyennganh
 } from "../api/internship-allocation";
-import type { CompanyPayload, StudentPayload } from "../models/allocation/add";
+import type { CompanyPayload, StudentPayload, CompanychuyennganhPayload, StudentchuyennganhPayload } from "../models/allocation/add";
 
 interface AllocationCompanyWithStudents extends CompanyPayload {
     students: StudentPayload[];
+}
+
+interface AllocationChuyenNganhCompanyWithStudents extends CompanychuyennganhPayload {
+    students: StudentchuyennganhPayload[];
 }
 
 
@@ -145,6 +149,60 @@ export async function phanBoTuDong(
     }
 }
 
+export async function phanBoTuDongchuyennganh(
+    madot: string,
+    madotphanbo: string,
+    companies: AllocationChuyenNganhCompanyWithStudents[]
+) {
+    try {
+        if (companies.length === 0) {
+            alert("Danh sách công ty trống!");
+            return;
+        }
+        let remainingStudents = companies.flatMap((c) => c.students);
+        if (remainingStudents.length === 0) {
+            alert("Danh sách sinh viên trống!");
+            return;
+        }
+        for (const comp of companies) {
+            if (remainingStudents.length === 0) break; // hết sinh viên thì dừng
+
+            // Lấy số lượng sinh viên cần phân bổ cho công ty
+            const numToAllocate = Math.min(comp.soluong, remainingStudents.length);
+            alert(JSON.stringify(comp, null, 2));
+            alert(`soluong = ${comp.soluong}`);
+
+            alert(`remainingStudents.length = ${remainingStudents.length}`);
+
+
+
+            // Lấy danh sách sinh viên tương ứng
+            const studentsForCompany = remainingStudents.slice(0, numToAllocate);
+            alert(JSON.stringify({ studentsForCompany }, null, 2));
+            // Gọi API backend phân bổ
+            const res = await phanBoSinhVien(
+                madot,
+                madotphanbo,
+                comp.macongty,
+                studentsForCompany.map((s) => s.masv)
+            );
+
+            if (res.result !== "oke") {
+                alert(`Phân bổ công ty ${comp.macongty} thất bại!`);
+            } else {
+                console.log(`Đã phân bổ ${studentsForCompany.length} sinh viên cho công ty ${comp.macongty}`);
+            }
+
+            // Loại bỏ sinh viên đã phân bổ khỏi danh sách còn lại
+            remainingStudents = remainingStudents.slice(numToAllocate);
+        }
+
+        alert("Phân bổ tất cả sinh viên thành công!");
+    } catch (err: any) {
+        console.error(err);
+        alert(err.message || "Đã xảy ra lỗi, vui lòng thử lại.");
+    }
+}
 
 export async function phanbosinhvien(madot: string, madotphanbo: string, macongty: string, masv: string[]) {
     try {
@@ -169,6 +227,21 @@ export async function phanbosinhvien(madot: string, madotphanbo: string, macongt
 export async function phanbosinhvientheodiachi(students: StudentPayload[], companies: CompanyPayload[]) {
     try {
         const res = await phanBoSinhVienTheoDiaChi(students, companies);
+        if (res && Array.isArray(res)) {
+            return res;
+        } else {
+            return undefined;
+        }
+    } catch (err: any) {
+        console.error(err);
+        alert(err.message || "Đã xảy ra lỗi, vui lòng thử lại.");
+        return undefined;
+    }
+}
+
+export async function phanbosinhvientheochuyennganh(students: StudentchuyennganhPayload[], companies: CompanychuyennganhPayload[]) {
+    try {
+        const res = await phanBoSinhVienTheochuyennganh(students, companies);
         if (res && Array.isArray(res)) {
             return res;
         } else {
@@ -261,7 +334,7 @@ export async function deletePhanBoFunction(madotphanbo: string) {
 //soluong: number, madot: string, magiangvien: string, masv: string[]
 export async function phanbogiaovienhuongdanthucong(soluong: number, madot: string, magiangvien: string, masv: string[]) {
     try {
-        const res = await phanbogiaovien(soluong , madot,magiangvien, masv);
+        const res = await phanbogiaovien(soluong, madot, magiangvien, masv);
         return res;
     } catch (err: any) {
         console.error(err);
@@ -271,45 +344,208 @@ export async function phanbogiaovienhuongdanthucong(soluong: number, madot: stri
 }
 
 export async function phanbogiaovienhuongdantudong(
-  madot: string,
-  magiangvien: string[],
-  masinhvien: string[]
+    madot: string,
+    lecturers: { magiangvien: string; listCongTy: string[] }[],
+    students: { masv: string; macongty: string }[]
 ) {
-  try {
-    if (!masinhvien.length || !magiangvien.length) {
-      throw new Error("Danh sách sinh viên hoặc giảng viên rỗng.");
+    try {
+        if (!students.length || !lecturers.length) {
+            throw new Error("Danh sách sinh viên hoặc giảng viên rỗng.");
+        }
+
+        const totalSv = students.length;
+        const totalGv = lecturers.length;
+
+        // quota chia đều
+        const baseQuota = Math.floor(totalSv / totalGv);
+        let remainder = totalSv % totalGv;
+
+        const gvQuota: Record<string, number> = {};
+        const gvAssignments: Record<string, string[]> = {};
+        const usedStudents = new Set<string>();
+
+        for (const gv of lecturers) {
+            gvQuota[gv.magiangvien] = baseQuota + (remainder > 0 ? 1 : 0);
+            gvAssignments[gv.magiangvien] = [];
+            if (remainder > 0) remainder--;
+        }
+
+        // Danh sách công ty
+        const companies = Array.from(new Set(students.map(s => s.macongty)));
+
+        // -------------------------
+        // VÒNG 1 – GHÉP THEO CÔNG TY
+        // -------------------------
+        for (const company of companies) {
+            const svInCompany = students.filter(s => s.macongty === company);
+
+            for (const sv of svInCompany) {
+                // Những giảng viên có công ty trùng + còn slot
+                const matchingGVs = lecturers.filter(gv =>
+                    gv.listCongTy.includes(company) &&
+                    gvAssignments[gv.magiangvien].length < gvQuota[gv.magiangvien]
+                );
+
+                if (matchingGVs.length === 0) continue; // bỏ qua nếu không có GV trùng
+
+                // chọn giảng viên có ít SV nhất
+                const selected = matchingGVs.reduce((a, b) =>
+                    gvAssignments[a.magiangvien].length <= gvAssignments[b.magiangvien].length ? a : b
+                );
+
+                gvAssignments[selected.magiangvien].push(sv.masv);
+                usedStudents.add(sv.masv);
+            }
+        }
+
+        // -------------------------
+        // VÒNG 2 – BÙ SLOT CÒN THIẾU
+        // -------------------------
+        const remainingStudents = students.filter(s => !usedStudents.has(s.masv));
+
+        for (const sv of remainingStudents) {
+            // lấy GV còn slot
+            const gvWithSlot = lecturers.filter(
+                gv => gvAssignments[gv.magiangvien].length < gvQuota[gv.magiangvien]
+            );
+
+            if (gvWithSlot.length === 0) break;
+
+            // chọn giảng viên ít SV nhất
+            const selected = gvWithSlot.reduce((a, b) =>
+                gvAssignments[a.magiangvien].length <= gvAssignments[b.magiangvien].length ? a : b
+            );
+
+            gvAssignments[selected.magiangvien].push(sv.masv);
+            usedStudents.add(sv.masv);
+        }
+
+        // -------------------------
+        // GỬI LÊN SERVER (GIỮ NGUYÊN)
+        // -------------------------
+        for (const gv of lecturers) {
+            const listSv = gvAssignments[gv.magiangvien];
+            if (listSv.length > 0) {
+                await phanbogiaovien(
+                    listSv.length,
+                    madot,
+                    gv.magiangvien,
+                    listSv
+                );
+            }
+        }
+
+        return {
+            result: true,
+            message: "Phân bổ giảng viên thành công (ưu tiên trùng công ty + chia đều)",
+            assignments: gvAssignments
+        };
+
+    } catch (err: any) {
+        console.error(err);
+        alert(err.message || "Đã xảy ra lỗi khi phân bổ giảng viên.");
+        return false;
     }
+}
 
-    const totalSv = masinhvien.length;
-    const totalGv = magiangvien.length;
 
-    // Tính số lượng sinh viên cho từng giảng viên
-    // Chia đều, giảng viên đầu tiên có thể nhiều hơn 1 nếu không chia hết
-    const baseCount = Math.floor(totalSv / totalGv);
-    let remainder = totalSv % totalGv;
+export function phanbogiaovienhuongdantudong_preview(
+    madot: string,
+    lecturers: { magiangvien: string; listCongTy: string[] }[],
+    students: { masv: string; macongty: string }[]
+) {
+    try {
+        if (!students.length || !lecturers.length) {
+            throw new Error("Danh sách sinh viên hoặc giảng viên rỗng.");
+        }
 
-    let startIndex = 0;
+        const totalSv = students.length;
+        const totalGv = lecturers.length;
 
-    for (const gv of magiangvien) {
-      let count = baseCount;
-      if (remainder > 0) {
-        count += 1;
-        remainder -= 1;
-      }
+        // quota chia đều
+        const baseQuota = Math.floor(totalSv / totalGv);
+        let remainder = totalSv % totalGv;
 
-      const svSlice = masinhvien.slice(startIndex, startIndex + count);
-      startIndex += count;
+        const gvQuota: Record<string, number> = {};
+        const gvAssignments: Record<string, string[]> = {};
+        const usedStudents = new Set<string>();
 
-      if (svSlice.length > 0) {
-        // Gọi hàm đã kết nối server
-        await phanbogiaovien(count, madot, gv, svSlice);
-      }
+        // khởi tạo quota + danh sách phân công rỗng
+        for (const gv of lecturers) {
+            gvQuota[gv.magiangvien] = baseQuota + (remainder > 0 ? 1 : 0);
+            gvAssignments[gv.magiangvien] = [];
+            if (remainder > 0) remainder--;
+        }
+
+        // Danh sách công ty
+        const companies = Array.from(new Set(students.map(s => s.macongty)));
+
+        // -------------------------
+        // GIAI ĐOẠN 1 – GHÉP THEO CÔNG TY
+        // -------------------------
+        for (const company of companies) {
+            const svInCompany = students.filter(s => s.macongty === company);
+
+            for (const sv of svInCompany) {
+                // Giảng viên có công ty trùng + còn slot
+                const matchingGVs = lecturers.filter(
+                    gv =>
+                        gv.listCongTy.includes(company) &&
+                        gvAssignments[gv.magiangvien].length < gvQuota[gv.magiangvien]
+                );
+
+                if (matchingGVs.length === 0) continue;
+
+                // giảng viên hiện đang có ít SV nhất
+                const selected = matchingGVs.reduce((a, b) =>
+                    gvAssignments[a.magiangvien].length <= gvAssignments[b.magiangvien].length
+                        ? a
+                        : b
+                );
+
+                gvAssignments[selected.magiangvien].push(sv.masv);
+                usedStudents.add(sv.masv);
+            }
+        }
+
+        // -------------------------
+        // GIAI ĐOẠN 2 – BÙ SLOT CÒN THIẾU
+        // -------------------------
+        const remainingStudents = students.filter(s => !usedStudents.has(s.masv));
+
+        for (const sv of remainingStudents) {
+            const gvWithSlot = lecturers.filter(
+                gv => gvAssignments[gv.magiangvien].length < gvQuota[gv.magiangvien]
+            );
+
+            if (gvWithSlot.length === 0) break;
+
+            const selected = gvWithSlot.reduce((a, b) =>
+                gvAssignments[a.magiangvien].length <= gvAssignments[b.magiangvien].length
+                    ? a
+                    : b
+            );
+
+            gvAssignments[selected.magiangvien].push(sv.masv);
+            usedStudents.add(sv.masv);
+        }
+
+        // -------------------------
+        // TRẢ VỀ ĐỂ HIỂN THỊ (KHÔNG GỬI SERVER)
+        // -------------------------
+        return {
+            result: true,
+            message: "Phân bổ xem trước (ưu tiên trùng công ty + chia đều, không gửi server).",
+            assignments: gvAssignments,
+            quota: gvQuota
+        };
+
+    } catch (err: any) {
+        console.error(err);
+        return {
+            result: false,
+            message: err.message || "Đã xảy ra lỗi khi phân bổ.",
+            assignments: {}
+        };
     }
-
-    return true;
-  } catch (err: any) {
-    console.error(err);
-    alert(err.message || "Đã xảy ra lỗi khi phân bổ giảng viên.");
-    return false;
-  }
 }

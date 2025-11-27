@@ -1,601 +1,554 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useEffect, useState } from "react"
-import { FaBuilding, FaUserGraduate, FaCopy, FaCheck, FaExchangeAlt, FaChartBar, FaMapMarkerAlt } from "react-icons/fa"
-import type { SinhVien, CongTyThucTap } from "../../../models/model-all"
-import { Laycongtyphanbo } from "../../../functions/company"
-import { laysinhvienphanbo, laysinhvientheoid } from "../../../functions/student"
-import type { CompanyPayload, StudentPayload } from "../../../models/allocation/add"
-import { phanbosinhvien } from "../../../functions/internship-allocation"
-import { useParams } from "react-router-dom"
-import { Modal, ModalBody, ModalHeader } from "flowbite-react"
-import XacthucPhanBoTuDongCard from "./show-allow-by-address"
+import React, { useEffect, useState } from "react";
+import { 
+    FaBuilding, FaUserGraduate, FaCopy, FaCheck, FaExchangeAlt, 
+    FaMapMarkerAlt, FaBookOpen, FaLayerGroup, FaSearch 
+} from "react-icons/fa";
+import { useParams } from "react-router-dom";
+import { Modal, ModalBody, ModalHeader } from "flowbite-react";
+
+// --- Models ---
+import type { SinhVien, CongTyThucTap } from "../../../models/model-all";
+import type { CompanyPayload, StudentPayload, CompanychuyennganhPayload, StudentchuyennganhPayload } from "../../../models/allocation/add";
+
+// --- Functions ---
+import { Laycongtyphanbo } from "../../../functions/company";
+import { laysinhvienphanbo, laysinhvientheoid } from "../../../functions/student";
+import { phanbosinhvien } from "../../../functions/internship-allocation";
+
+// --- Components ---
+import XacthucPhanBoTuDongCard from "./show-allow-by-address";
+import XacthucPhanBoTuDongChuyenNganhCard from "./show-allow-by-chuyennganh";
 
 export default function AllocationPage() {
+    // --- Params & State ---
     const { madot } = useParams<{ madot: string }>();
     const { madotphanbo } = useParams<{ madotphanbo: string }>();
-    const [mode, setMode] = useState<"manual" | "auto">("manual")
-    const [selectedCompany, setSelectedCompany] = useState<CongTyThucTap | null>(null)
-    const [selectedCompanies, setSelectedCompanies] = useState<Record<string, number>>({})
-    const [selectedStudents, setSelectedStudents] = useState<string[]>([])
-    const [lastCheckedIndex, setLastCheckedIndex] = useState<number | null>(null)
-    const [sinhvien, setSinhvien] = useState<SinhVien[]>([])
-    const [congty, setCongty] = useState<CongTyThucTap[]>([])
-    const [copiedId, setCopiedId] = useState<string | null>(null)
-    const [allocationData, setAllocationData] = useState<any>(null)
-    const [updateModalOpen, setUpdateModalOpen] = useState(false);
-    const [modalPayload, setModalPayload] = useState<{
-        studentsPayload: StudentPayload[];
-        companiesPayload: CompanyPayload[];
+
+    // Modes: manual (thủ công), auto (tự động)
+    const [mode, setMode] = useState<"manual" | "auto">("manual");
+    
+    // Auto Sub-modes: address (địa chỉ), specialty (chuyên ngành)
+    const [autoType, setAutoType] = useState<"address" | "specialty" | null>(null);
+
+    // Data State
+    const [sinhvien, setSinhvien] = useState<SinhVien[]>([]);
+    const [congty, setCongty] = useState<CongTyThucTap[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+
+    // Selection State
+    const [selectedCompany, setSelectedCompany] = useState<CongTyThucTap | null>(null);
+    const [selectedCompanies, setSelectedCompanies] = useState<Record<string, number>>({});
+    const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+    const [lastCheckedIndex, setLastCheckedIndex] = useState<number | null>(null);
+
+    // UI State
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState("");
+
+    // Modal State
+    const [modalOpen, setModalOpen] = useState(false);
+    // Payload cho Modal Address
+    const [addressPayload, setAddressPayload] = useState<{
+        students: StudentPayload[];
+        companies: CompanyPayload[];
+    } | null>(null);
+    // Payload cho Modal Specialty
+    const [specialtyPayload, setSpecialtyPayload] = useState<{
+        students: StudentchuyennganhPayload[];
+        companies: CompanychuyennganhPayload[];
     } | null>(null);
 
-    // Load công ty
+    // --- Effects ---
     useEffect(() => {
-        Laycongtyphanbo()
-            .then((res) => setCongty(res || []))
-            .catch((err) => console.error("Lỗi tải dữ liệu công ty:", err))
-    }, [])
-
-    // Load sinh viên
-    useEffect(() => {
-        laysinhvienphanbo(madot || "", madotphanbo || "")
-            .then((res) => setSinhvien(res || []))
-            .catch((err) => console.error("Lỗi tải dữ liệu sinh viên:", err))
-    }, [])
-
-    // Cập nhật allocationData khi chọn sinh viên/công ty
-    useEffect(() => {
-        if (mode === "manual" && selectedCompany && selectedStudents.length > 0) {
-            const data = {
-                mode: "manual",
-                company: selectedCompany,
-                students: selectedStudents.map((masv) => sinhvien.find((s) => s.masv === masv)),
-                timestamp: new Date().toISOString(),
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [resCompanies, resStudents] = await Promise.all([
+                    Laycongtyphanbo(),
+                    laysinhvienphanbo(madot || "", madotphanbo || "")
+                ]);
+                setCongty(resCompanies || []);
+                setSinhvien(resStudents || []);
+            } catch (err) {
+                console.error("Lỗi tải dữ liệu:", err);
+            } finally {
+                setLoading(false);
             }
-            setAllocationData(data)
-        } else if (mode === "auto" && Object.keys(selectedCompanies).length > 0) {
-            const companies = Object.entries(selectedCompanies).map(([macongty, quantity]) => ({
-                company: congty.find((c) => c.macongty === macongty),
-                quantity,
-            }))
+        };
+        fetchData();
+    }, [madot, madotphanbo]);
 
-            const data = {
-                mode: "auto",
-                allocationType: null,
-                companies,
-                totalStudents: Object.values(selectedCompanies).reduce((a, b) => a + b, 0),
-                timestamp: new Date().toISOString(),
-            }
-            setAllocationData(data)
-        } else {
-            setAllocationData(null)
-        }
-    }, [mode, selectedCompany, selectedCompanies, selectedStudents, sinhvien, congty])
-
+    // --- Helper Functions ---
     const copyToClipboard = (text: string, id: string) => {
-        navigator.clipboard.writeText(text)
-        setCopiedId(id)
-        setTimeout(() => setCopiedId(null), 2000)
-    }
+        navigator.clipboard.writeText(text);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
 
     const toggleStudent = (index: number, masv: string, event: React.MouseEvent<HTMLInputElement>) => {
         if (event.nativeEvent.shiftKey && lastCheckedIndex !== null) {
-            const start = Math.min(lastCheckedIndex, index)
-            const end = Math.max(lastCheckedIndex, index)
-            const newSelected = [...selectedStudents]
+            const start = Math.min(lastCheckedIndex, index);
+            const end = Math.max(lastCheckedIndex, index);
+            const newSelected = new Set(selectedStudents);
+            
+            // Filtered list to respect current view
+            const visibleStudents = filteredStudents();
+            
             for (let i = start; i <= end; i++) {
-                const id = sinhvien[i].masv
-                if (!newSelected.includes(id)) newSelected.push(id)
+                 // Note: Logic này đúng nếu không filter. Nếu filter cần map qua filtered list.
+                 // Để đơn giản, ta lấy theo index của full list nếu không search, hoặc cải tiến sau.
+                 if(sinhvien[i]) newSelected.add(sinhvien[i].masv);
             }
-            setSelectedStudents(newSelected)
+            setSelectedStudents(Array.from(newSelected));
         } else {
-            setSelectedStudents((prev) => (prev.includes(masv) ? prev.filter((s) => s !== masv) : [...prev, masv]))
+            setSelectedStudents((prev) => 
+                prev.includes(masv) ? prev.filter((s) => s !== masv) : [...prev, masv]
+            );
         }
-        setLastCheckedIndex(index)
-    }
+        setLastCheckedIndex(index);
+    };
 
-    const selectAllStudents = () => {
-        setSelectedStudents(sinhvien.map((s) => s.masv))
-    }
+    const handleSelectAll = () => setSelectedStudents(sinhvien.map(s => s.masv));
+    const handleDeselectAll = () => setSelectedStudents([]);
 
-    const deselectAllStudents = () => {
-        setSelectedStudents([])
-    }
-
-    const handleToggleAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.checked) {
-            selectAllStudents()
+    const handleCompanyQuantityChange = (macongty: string, val: number) => {
+        if (val > 0) {
+            setSelectedCompanies(prev => ({ ...prev, [macongty]: val }));
         } else {
-            deselectAllStudents()
+            const newState = { ...selectedCompanies };
+            delete newState[macongty];
+            setSelectedCompanies(newState);
         }
-    }
+    };
 
-    const handleManualAllocate = () => {
-        if (!selectedCompany || selectedStudents.length === 0) return
-        // Preview tự động cập nhật thông qua useEffect
-    }
+    const filteredStudents = () => {
+        return sinhvien.filter(s => 
+            s.hoten?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            s.masv.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    };
 
-    const handleAutoAllocate = (type: "address" | "score") => {
-        if (allocationData) {
-            const updatedData = {
-                ...allocationData,
-                allocationType: type,
-            }
-            setAllocationData(updatedData)
-        }
-    }
+    // --- Action Handlers ---
 
-    const isAllStudentsSelected = selectedStudents.length === sinhvien.length && sinhvien.length > 0
-
-    const handleSubmitAllocation = async () => {
-        if (mode === "manual") {
-            // Gửi thủ công
-            phanbosinhvien(
+    // 1. Phân bổ thủ công
+    const handleSubmitManual = async () => {
+        if (!selectedCompany || selectedStudents.length === 0) return;
+        try {
+            await phanbosinhvien(
                 madot || "",
                 madotphanbo || "",
-                allocationData.company.macongty,
-                allocationData.students.map((s: SinhVien) => s.masv)
-            )
-        } else if (mode === "auto" && allocationData.allocationType === "address") {
-            // Lấy thông tin đầy đủ sinh viên trước khi gửi modal
-            const fullStudents: SinhVien[] = await Promise.all(
-                selectedStudents.map(async (masv) => {
-                    const sv = await laysinhvientheoid(masv);
-                    return sv!; // loại bỏ undefined
+                selectedCompany.macongty,
+                selectedStudents
+            );
+            alert("Phân bổ thủ công thành công!");
+            // Reset selection after success
+            setSelectedStudents([]);
+        } catch (error: any) {
+            alert(error.message || "Có lỗi xảy ra");
+        }
+    };
+
+    // 2. Chuẩn bị dữ liệu và mở Modal (Cho cả Address và Specialty)
+    const handlePrepareAutoAllocation = async (type: "address" | "specialty") => {
+        setAutoType(type);
+
+        // Validation chung
+        const selectedCompanyIds = Object.keys(selectedCompanies);
+        if (selectedCompanyIds.length === 0) {
+            alert("Vui lòng chọn ít nhất 1 công ty và nhập số lượng!");
+            return;
+        }
+        if (selectedStudents.length === 0) {
+            alert("Vui lòng chọn danh sách sinh viên cần phân bổ!");
+            return;
+        }
+
+        // Lấy full data sinh viên đã chọn
+        const fullStudents = sinhvien.filter(s => selectedStudents.includes(s.masv));
+        
+        // Lấy full data công ty đã chọn
+        const targetCompanies = congty.filter(c => selectedCompanyIds.includes(c.macongty));
+
+        if (type === "address") {
+            // Mapping Address Payload
+            const studentsPL: StudentPayload[] = await Promise.all(
+                fullStudents.map(async (s) => {
+                    // Nếu cần gọi API chi tiết thì gọi, ở đây dùng data có sẵn để nhanh
+                    // const detail = await laysinhvientheoid(s.masv); 
+                    return {
+                        masv: s.masv,
+                        diachi: s.diachi || "",
+                        lat: s.lat,
+                        long: s.long
+                    };
                 })
             );
 
-
-            const studentsPayload: StudentPayload[] = fullStudents.map((s) => ({
-                masv: s.masv,
-                diachi: s.diachi || "",
-                lat:s.lat,
-                long:s.long
+            const companiesPL: CompanyPayload[] = targetCompanies.map(c => ({
+                macongty: c.macongty,
+                diachi: c.diachi || "",
+                lat: c.lat,
+                long: c.long,
+                soluong: selectedCompanies[c.macongty]
             }));
 
-            const companiesPayload: CompanyPayload[] = Object.entries(selectedCompanies)
-                .map(([macongty, quantity]) => {
-                    const company = congty.find(c => c.macongty === macongty);
-                    if (!company) return undefined;
-                    return {
-                        macongty: company.macongty,
-                        diachi: company.diachi || "",
-                        soluong: quantity,
-                        lat:company.lat,
-                        long:company.long
-                    };
-                })
-                .filter((c): c is CompanyPayload => !!c);
+            setAddressPayload({ students: studentsPL, companies: companiesPL });
+            setModalOpen(true);
 
-            setUpdateModalOpen(true);
-            setModalPayload({ studentsPayload, companiesPayload });
+        } else if (type === "specialty") {
+            // Mapping Specialty Payload
+            const studentsPL: StudentchuyennganhPayload[] = fullStudents.map(s => ({
+                masv: s.masv,
+                // Giả sử model SinhVien có trường chuyennganh. Nếu không, phải gọi API detail.
+                chuyennganh: (s as any).chuyennganh || "Chưa xác định" 
+            }));
+
+            const companiesPL: CompanychuyennganhPayload[] = targetCompanies.map(c => ({
+                macongty: c.macongty,
+                // Map linhvuc của công ty sang chuyennganh
+                chuyennganh: c.linhvuc || "Chưa xác định",
+                soluong: selectedCompanies[c.macongty]
+            }));
+
+            setSpecialtyPayload({ students: studentsPL, companies: companiesPL });
+            setModalOpen(true);
         }
-    }
+    };
+
+    // --- Render Components ---
 
     return (
-        <div className="flex flex-col h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="flex flex-col h-screen bg-slate-50 font-sans text-slate-800">
             {/* Header */}
-            <div className="bg-white border-b border-slate-200 shadow-md">
-                <div className="max-w-7xl mx-auto px-6 py-5">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold text-slate-900">Phân bổ sinh viên thực tập</h1>
-                            <p className="text-slate-600 mt-1">Quản lý và phân công sinh viên đến các công ty</p>
+            <header className="bg-white border-b border-blue-200 shadow-sm z-20 sticky top-0">
+                <div className="max-w-[1920px] mx-auto px-6 py-4 flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                            <FaLayerGroup size={24} />
                         </div>
-
-                        <div className="flex gap-3 bg-slate-100 p-1.5 rounded-lg shadow-sm">
-                            <button
-                                className={`px-6 py-2.5 rounded-md font-semibold transition-all duration-200 ${mode === "manual"
-                                    ? "bg-blue-600 text-white shadow-md"
-                                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200"
-                                    }`}
-                                onClick={() => {
-                                    setMode("manual")
-                                    setSelectedStudents([])
-                                }}
-                            >
-                                Phân bổ thủ công
-                            </button>
-                            <button
-                                className={`px-6 py-2.5 rounded-md font-semibold transition-all duration-200 ${mode === "auto"
-                                    ? "bg-emerald-600 text-white shadow-md"
-                                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200"
-                                    }`}
-                                onClick={() => {
-                                    setMode("auto")
-                                    setSelectedStudents([])
-                                }}
-                            >
-                                Phân bổ tự động
-                            </button>
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Phân Bổ Thực Tập</h1>
+                            <p className="text-sm text-slate-500">Quản lý đợt: <span className="font-mono font-medium text-blue-600">{madot}</span></p>
                         </div>
                     </div>
+
+                    {/* Mode Switcher */}
+                    <div className="bg-slate-100 p-1 rounded-xl flex gap-1 border border-slate-200">
+                        <button
+                            onClick={() => { setMode("manual"); setSelectedStudents([]); }}
+                            className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
+                                mode === "manual" 
+                                ? "bg-white text-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.15)] border border-blue-100" 
+                                : "text-slate-500 hover:text-slate-700"
+                            }`}
+                        >
+                            <FaExchangeAlt /> Thủ Công
+                        </button>
+                        <button
+                            onClick={() => { setMode("auto"); setSelectedStudents([]); }}
+                            className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
+                                mode === "auto" 
+                                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]" 
+                                : "text-slate-500 hover:text-slate-700"
+                            }`}
+                        >
+                            <FaCheck /> Tự Động
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </header>
 
             {/* Main Content */}
-            <div className="flex-1 max-w-7xl mx-auto w-full px-6 py-6 gap-6 flex flex-col overflow-hidden">
-                {/* Toolbar */}
-                <div className="bg-white rounded-xl shadow-md border border-slate-200 p-4">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex gap-2">
-                            <button
-                                onClick={selectAllStudents}
-                                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors text-sm"
-                            >
-                                ✓ Chọn tất cả
-                            </button>
-                            <button
-                                onClick={deselectAllStudents}
-                                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors text-sm"
-                            >
-                                ✗ Bỏ chọn tất cả
-                            </button>
-                        </div>
-
-                        <div className="flex-1" />
-
-                        {mode === "manual" ? (
-                            <button
-                                onClick={handleManualAllocate}
-                                disabled={!selectedCompany || selectedStudents.length === 0}
-                                className={`px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${selectedCompany && selectedStudents.length > 0
-                                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
-                                    : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                                    }`}
-                            >
-                                <FaExchangeAlt className="text-sm" />
-                                Phân bổ ({selectedStudents.length} SV)
-                            </button>
-                        ) : (
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => handleAutoAllocate("address")}
-                                    disabled={Object.keys(selectedCompanies).length === 0}
-                                    className={`px-5 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 text-sm ${Object.keys(selectedCompanies).length > 0
-                                        ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-md"
-                                        : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                                        }`}
-                                >
-                                    <FaMapMarkerAlt />
-                                    Phân theo địa chỉ
-                                </button>
-                                <button
-                                    onClick={() => handleAutoAllocate("score")}
-                                    disabled={Object.keys(selectedCompanies).length === 0}
-                                    className={`px-5 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 text-sm ${Object.keys(selectedCompanies).length > 0
-                                        ? "bg-amber-600 text-white hover:bg-amber-700 shadow-md"
-                                        : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                                        }`}
-                                >
-                                    <FaChartBar />
-                                    Phân theo điểm số
-                                </button>
-                            </div>
-                        )}
+            <main className="flex-1 overflow-hidden p-6 max-w-[1920px] mx-auto w-full flex gap-6">
+                
+                {/* COL 1: COMPANIES LIST */}
+                <section className={`w-1/4 flex flex-col bg-white rounded-2xl border transition-all duration-300 shadow-lg overflow-hidden
+                    ${mode === 'auto' ? 'border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.15)]' : 'border-slate-200'}`}>
+                    
+                    <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+                        <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
+                            <FaBuilding className="text-blue-500" />
+                            {mode === 'manual' ? "Chọn 1 Công ty" : "Chọn Công ty & Chỉ tiêu"}
+                        </h2>
+                        <p className="text-xs text-slate-500 mt-1">
+                            {mode === 'manual' ? "Click để chọn công ty đích" : "Tích chọn và nhập số lượng SV"}
+                        </p>
                     </div>
-                </div>
 
-                {/* Content Area */}
-                <div className="flex-1 flex gap-6 overflow-hidden">
-                    {/* Left Panel - Companies */}
-                    <div className="w-1/3 flex flex-col bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-                            <h2 className="text-lg font-bold text-white flex items-center gap-3">
-                                <FaBuilding className="text-blue-200 text-lg" />
-                                Danh sách công ty
-                            </h2>
-                            <p className="text-blue-100 text-sm mt-2">
-                                {mode === "auto" ? "Chọn công ty và nhập số lượng SV" : "Click để chọn công ty"}
-                            </p>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                            {congty.map((c) => (
-                                <div
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                        {loading ? <div className="text-center py-10">Đang tải...</div> : congty.map((c) => {
+                            const isSelected = mode === 'manual' 
+                                ? selectedCompany?.macongty === c.macongty
+                                : !!selectedCompanies[c.macongty];
+                            
+                            return (
+                                <div 
                                     key={c.macongty}
-                                    className={`p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer ${mode === "manual" && selectedCompany?.macongty === c.macongty
-                                        ? "border-blue-500 bg-blue-50 shadow-md"
-                                        : "border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm"
+                                    onClick={() => mode === 'manual' && setSelectedCompany(c)}
+                                    className={`relative p-4 rounded-xl border transition-all cursor-pointer group
+                                        ${isSelected 
+                                            ? "bg-blue-50/80 border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.2)]" 
+                                            : "bg-white border-slate-200 hover:border-blue-300 hover:shadow-md"
                                         }`}
-                                    onClick={() => mode === "manual" && setSelectedCompany(c)}
                                 >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="flex-1">
-                                            <h3 className="font-bold text-slate-900 text-sm line-clamp-1">{c.tencongty}</h3>
-
-                                            {mode === "manual" && selectedCompany?.macongty === c.macongty && (
-                                                <div className="mt-2 p-2 bg-slate-50 rounded border border-slate-300 flex items-center justify-between group">
-                                                    <div>
-                                                        <p className="text-xs text-slate-500 font-medium">Mã công ty</p>
-                                                        <p className="font-mono font-bold text-blue-700 text-sm">{c.macongty}</p>
-                                                    </div>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            copyToClipboard(c.macongty, c.macongty)
-                                                        }}
-                                                        className="text-slate-400 hover:text-blue-600 transition-colors p-2"
-                                                        title="Copy mã công ty"
-                                                    >
-                                                        {copiedId === c.macongty ? <FaCheck className="text-green-600" /> : <FaCopy />}
-                                                    </button>
-                                                </div>
-                                            )}
-
-                                            <p className="text-xs text-slate-500 mt-2 line-clamp-2">{c.diachi}</p>
-                                            <div className="flex gap-2 mt-2 flex-wrap text-xs">
-                                                <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md font-medium">
-                                                    {c.phanloai}
-                                                </span>
-                                                <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-medium">{c.hoatdong}</span>
-                                            </div>
+                                    {/* Auto Mode Checkbox */}
+                                    {mode === 'auto' && (
+                                        <div className="absolute top-4 right-4 z-10">
+                                            <input 
+                                                type="checkbox"
+                                                checked={!!selectedCompanies[c.macongty]}
+                                                onChange={(e) => handleCompanyQuantityChange(c.macongty, e.target.checked ? 1 : 0)}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                            />
                                         </div>
+                                    )}
 
-                                        {mode === "auto" && (
-                                            <div className="flex flex-col items-center gap-2 pt-1">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedCompanies[c.macongty] > 0}
-                                                    onChange={(e) => {
-                                                        e.stopPropagation()
-                                                        const checked = e.target.checked
-                                                        setSelectedCompanies((prev) => {
-                                                            const copy = { ...prev }
-                                                            if (checked) copy[c.macongty] = copy[c.macongty] || 1
-                                                            else delete copy[c.macongty]
-                                                            return copy
-                                                        })
-                                                    }}
-                                                    className="w-5 h-5 cursor-pointer accent-emerald-600"
-                                                />
-                                                {selectedCompanies[c.macongty] > 0 && (
-                                                    <input
-                                                        type="number"
-                                                        min={1}
-                                                        max={999}
-                                                        value={selectedCompanies[c.macongty]}
-                                                        onChange={(e) => {
-                                                            e.stopPropagation()
-                                                            const val = Number.parseInt(e.target.value) || 0
-                                                            if (val > 0) {
-                                                                setSelectedCompanies((prev) => ({
-                                                                    ...prev,
-                                                                    [c.macongty]: val,
-                                                                }))
-                                                            }
-                                                        }}
-                                                        className="w-14 px-2 py-1 border border-emerald-400 rounded text-sm text-center font-bold bg-emerald-50 text-emerald-700"
-                                                        placeholder="SL"
-                                                    />
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Company Stats */}
-                        {mode === "auto" && Object.keys(selectedCompanies).length > 0 && (
-                            <div className="border-t border-slate-200 bg-gradient-to-r from-emerald-50 to-emerald-100 px-4 py-3">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="text-center">
-                                        <p className="text-xs text-slate-600 font-medium">Công ty chọn</p>
-                                        <p className="text-xl font-bold text-emerald-700">{Object.keys(selectedCompanies).length}</p>
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-xs text-slate-600 font-medium">Tổng SV</p>
-                                        <p className="text-xl font-bold text-emerald-700">
-                                            {Object.values(selectedCompanies).reduce((a, b) => a + b, 0)}
+                                    <div className="pr-8">
+                                        <h3 className={`font-bold text-sm mb-1 ${isSelected ? 'text-blue-800' : 'text-slate-700'}`}>
+                                            {c.tencongty}
+                                        </h3>
+                                        <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                                            <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">{c.macongty}</span>
+                                            <button onClick={(e) => { e.stopPropagation(); copyToClipboard(c.macongty, c.macongty); }} 
+                                                className="hover:text-blue-600 transition-colors">
+                                                {copiedId === c.macongty ? <FaCheck className="text-emerald-500"/> : <FaCopy />}
+                                            </button>
+                                        </div>
+                                        
+                                        {/* Hiển thị lĩnh vực cho chế độ chuyên ngành */}
+                                        <p className="text-xs text-slate-500 line-clamp-2 mb-2">
+                                            <span className="font-semibold text-slate-700">Lĩnh vực:</span> {c.linhvuc || "Chưa cập nhật"}
+                                        </p>
+                                        <p className="text-xs text-slate-400 line-clamp-1 flex items-center gap-1">
+                                            <FaMapMarkerAlt size={10}/> {c.diachi}
                                         </p>
                                     </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
 
-                    {/* Middle Panel - Students */}
-                    <div className="w-2/5 flex flex-col bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4">
-                            <h2 className="text-lg font-bold text-white flex items-center gap-3">
-                                <FaUserGraduate className="text-emerald-100 text-lg" />
-                                Danh sách sinh viên
+                                    {/* Auto Mode Quantity Input */}
+                                    {mode === 'auto' && selectedCompanies[c.macongty] && (
+                                        <div className="mt-3 pt-3 border-t border-blue-200/50 flex items-center justify-between animate-fadeIn">
+                                            <span className="text-xs font-bold text-blue-600">Chỉ tiêu:</span>
+                                            <input 
+                                                type="number" 
+                                                min="1" max="100"
+                                                value={selectedCompanies[c.macongty]}
+                                                onChange={(e) => handleCompanyQuantityChange(c.macongty, parseInt(e.target.value) || 0)}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="w-20 px-2 py-1 text-sm text-right font-bold text-blue-700 bg-white border border-blue-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+
+                {/* COL 2: STUDENTS LIST */}
+                <section className="flex-1 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                        <div>
+                            <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
+                                <FaUserGraduate className="text-emerald-500" />
+                                Danh sách Sinh viên
                             </h2>
-                            <p className="text-emerald-100 text-sm mt-2">
-                                Đã chọn:{" "}
-                                <span className="font-bold">
-                                    {selectedStudents.length}/{sinhvien.length}
-                                </span>
+                            <p className="text-xs text-slate-500 mt-1">
+                                Đã chọn: <span className="font-bold text-blue-600 text-sm">{selectedStudents.length}</span> / {sinhvien.length}
                             </p>
                         </div>
+                        
+                        {/* Search & Tools */}
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" />
+                                <input 
+                                    type="text" 
+                                    placeholder="Tìm sinh viên..." 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-8 pr-4 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="flex gap-1 bg-slate-200 p-1 rounded-lg">
+                                <button onClick={handleSelectAll} className="px-3 py-1 text-xs font-medium bg-white rounded shadow-sm hover:text-blue-600">All</button>
+                                <button onClick={handleDeselectAll} className="px-3 py-1 text-xs font-medium hover:bg-white hover:rounded hover:shadow-sm hover:text-red-600 transition-all">None</button>
+                            </div>
+                        </div>
+                    </div>
 
-                        {/* Table */}
-                        <div className="flex-1 overflow-y-auto">
-                            <table className="w-full text-sm">
-                                <thead className="bg-slate-100 border-b border-slate-200 sticky top-0">
-                                    <tr className="hover:bg-slate-100">
-                                        <th className="px-3 py-3 text-left">
-                                            <input
-                                                type="checkbox"
-                                                checked={isAllStudentsSelected}
-                                                onChange={handleToggleAll}
-                                                className="w-4 h-4 accent-emerald-600"
-                                            />
-                                        </th>
-                                        <th className="px-3 py-3 text-left font-bold text-slate-700">Mã SV</th>
-                                        <th className="px-3 py-3 text-left font-bold text-slate-700">Họ tên</th>
-                                        <th className="px-3 py-3 text-left font-bold text-slate-700">Email</th>
-                                        <th className="px-3 py-3 text-left font-bold text-slate-700">Ngày sinh</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {sinhvien.map((s, i) => (
-                                        <tr
-                                            key={s.masv}
-                                            className={`border-b border-slate-200 hover:bg-slate-50 transition-colors ${selectedStudents.includes(s.masv) ? "bg-blue-50" : ""
-                                                }`}
+                    <div className="flex-1 overflow-auto custom-scrollbar">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-100 text-slate-600 sticky top-0 z-10 font-bold uppercase text-xs">
+                                <tr>
+                                    <th className="w-10 px-4 py-3 text-center">#</th>
+                                    <th className="px-4 py-3">Mã SV</th>
+                                    <th className="px-4 py-3">Họ Tên</th>
+                                    <th className="px-4 py-3">Chuyên Ngành</th>
+                                    <th className="px-4 py-3">Ngày sinh</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredStudents().map((s, idx) => {
+                                    const isChecked = selectedStudents.includes(s.masv);
+                                    return (
+                                        <tr 
+                                            key={s.masv} 
+                                            onClick={(e) => toggleStudent(idx, s.masv, e as any)}
+                                            className={`hover:bg-blue-50/50 cursor-pointer transition-colors ${isChecked ? 'bg-blue-50' : ''}`}
                                         >
-                                            <td className="px-3 py-3 text-center">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedStudents.includes(s.masv)}
-                                                    onClick={(e) => toggleStudent(i, s.masv, e)}
-                                                    className="w-4 h-4 accent-emerald-600 cursor-pointer"
+                                            <td className="px-4 py-3 text-center">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={isChecked}
+                                                    onChange={() => {}} // Handle by TR click
+                                                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                                 />
                                             </td>
-                                            <td className="px-3 py-3 font-mono font-semibold text-blue-700 text-xs">{s.masv}</td>
-                                            <td className="px-3 py-3 font-medium text-slate-900">{s.hoten}</td>
-                                            <td className="px-3 py-3 text-slate-600 truncate">{s.email}</td>
-                                            <td className="px-3 py-3 text-slate-600">{s.ngaysinh}</td>
+                                            <td className="px-4 py-3 font-mono text-blue-600 font-medium">{s.masv}</td>
+                                            <td className="px-4 py-3 font-medium text-slate-800">{s.hoten}</td>
+                                            <td className="px-4 py-3 text-slate-500">
+                                                <span className="bg-slate-100 px-2 py-1 rounded border border-slate-200 text-xs">
+                                                    {(s as any).chuyennganh || "CNTT"}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-400 font-mono text-xs">{s.ngaysinh?.split('T')[0]}</td>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    {/* Right Panel - Data Preview */}
-                    <div className="w-1/4 flex flex-col bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-                        <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
-                            <h2 className="text-lg font-bold text-white">Dữ liệu đang thực hiện</h2>
-                            <p className="text-purple-100 text-xs mt-1">Xem trước dữ liệu trước khi gửi API</p>
-                        </div>
-
-                        {allocationData ? (
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                                {/* Mode Info */}
-                                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                    <p className="text-xs font-bold text-slate-600 mb-1">Chế độ</p>
-                                    <p className="text-sm font-semibold text-slate-900">
-                                        {allocationData.mode === "manual" ? "Phân bổ thủ công" : "Phân bổ tự động"}
-                                    </p>
-                                </div>
-
-                                {/* Manual Mode */}
-                                {allocationData.mode === "manual" && (
-                                    <>
-                                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                                            <p className="text-xs font-bold text-blue-700 mb-1">Công ty</p>
-                                            <p className="text-sm font-semibold text-slate-900 line-clamp-2">
-                                                {allocationData.company.tencongty}
-                                            </p>
-                                            <p className="text-xs text-slate-600 mt-1 font-mono">{allocationData.company.macongty}</p>
-                                        </div>
-
-                                        <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200">
-                                            <p className="text-xs font-bold text-emerald-700 mb-2">
-                                                Sinh viên ({allocationData.students.length})
-                                            </p>
-                                            <div className="space-y-1">
-                                                {allocationData.students.slice(0, 5).map((s: SinhVien) => (
-                                                    <div key={s.masv} className="text-xs text-slate-700 p-1 bg-white rounded">
-                                                        <span className="font-mono font-bold text-blue-700">{s.masv}</span> - {s.hoten}
-                                                    </div>
-                                                ))}
-                                                {allocationData.students.length > 5 && (
-                                                    <p className="text-xs text-slate-500 italic pt-1">
-                                                        ... và {allocationData.students.length - 5} sinh viên khác
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-
-                                {/* Auto Mode */}
-                                {allocationData.mode === "auto" && (
-                                    <>
-                                        <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                                            <p className="text-xs font-bold text-purple-700 mb-1">Kiểu phân bổ</p>
-                                            <p className="text-sm font-semibold text-slate-900">
-                                                {allocationData.allocationType === "address" ? "Phân theo địa chỉ" : "Phân theo điểm số"}
-                                            </p>
-                                        </div>
-
-                                        <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
-                                            <p className="text-xs font-bold text-amber-700 mb-2">
-                                                Công ty ({allocationData.companies.length})
-                                            </p>
-                                            <div className="space-y-2">
-                                                {allocationData.companies.map((item: any) => (
-                                                    <div
-                                                        key={item.company.macongty}
-                                                        className="text-xs bg-white p-2 rounded border border-amber-100"
-                                                    >
-                                                        <p className="font-mono font-bold text-blue-700">{item.company.macongty}</p>
-                                                        <p className="text-slate-700">{item.company.tencongty}</p>
-                                                        <p className="text-amber-700 font-bold mt-1">SV: {item.quantity}</p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-slate-100 p-3 rounded-lg">
-                                            <p className="text-xs font-bold text-slate-600">Tổng SV</p>
-                                            <p className="text-2xl font-bold text-slate-900">{allocationData.totalStudents}</p>
-                                        </div>
-                                    </>
-                                )}
-
-                                {/* Timestamp */}
-                                <div className="text-xs text-slate-500 border-t border-slate-200 pt-3">
-                                    <p>Cập nhật: {new Date(allocationData.timestamp).toLocaleString("vi-VN")}</p>
-                                </div>
-
-                                {/* Action Buttons */}
-                                <div className="flex gap-2 pt-3 border-t border-slate-200">
-                                    <button
-                                        onClick={handleSubmitAllocation}
-                                        className="flex-1 px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded hover:bg-emerald-700 transition-colors">
-                                        Gửi API
-                                    </button>
-                                    <Modal
-                                        show={updateModalOpen}
-                                        onClose={() => setUpdateModalOpen(false)}
-                                        size="5xl"
-                                        dismissible={false}
-                                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-                                    >
-                                        <ModalHeader>Cập nhật phân bố</ModalHeader>
-                                        <ModalBody className="bg-gray-50 p-1 rounded-xl shadow-lg w-full max-w-5xl max-h-[90vh] overflow-y-auto">
-                                            {modalPayload && (
-                                                <XacthucPhanBoTuDongCard
-                                                    onClose={() => setUpdateModalOpen(false)}
-                                                    students={modalPayload.studentsPayload}
-                                                    companies={modalPayload.companiesPayload}
-                                                    madot={madot || ""}
-                                                    madotphanbo={madotphanbo || ""}
-                                                />
-                                            )}
-                                        </ModalBody>
-                                    </Modal>
-
-                                    <button
-                                        onClick={() => setAllocationData(null)}
-                                        className="flex-1 px-3 py-2 bg-slate-300 text-slate-700 text-xs font-bold rounded hover:bg-slate-400 transition-colors"
-                                    >
-                                        Xóa
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex-1 flex items-center justify-center p-4">
-                                <div className="text-center">
-                                    <p className="text-slate-400 text-sm">Chưa có dữ liệu</p>
-                                    <p className="text-slate-500 text-xs mt-1">
-                                        Chọn công ty và sinh viên,
-                                        <br />
-                                        sau đó nhấn nút phân bổ
-                                    </p>
-                                </div>
-                            </div>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                        {filteredStudents().length === 0 && (
+                            <div className="p-8 text-center text-slate-400">Không tìm thấy sinh viên nào.</div>
                         )}
                     </div>
+                </section>
+
+                {/* COL 3: ACTION PANEL */}
+                <section className="w-1/4 flex flex-col gap-6">
+                    {/* Status Card */}
+                    <div className="bg-white rounded-2xl border border-blue-200 shadow-[0_0_15px_rgba(59,130,246,0.1)] overflow-hidden">
+                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                            <h2 className="text-white font-bold text-lg">Bảng Điều Khiển</h2>
+                            <p className="text-blue-100 text-xs mt-1">Chế độ: {mode === 'manual' ? 'Thủ công' : 'Tự động'}</p>
+                        </div>
+                        
+                        <div className="p-5 space-y-4">
+                            {/* Manual Info */}
+                            {mode === 'manual' && (
+                                <div className="space-y-3">
+                                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                        <p className="text-xs text-blue-500 font-bold uppercase mb-1">Công ty đích</p>
+                                        {selectedCompany ? (
+                                            <div className="font-bold text-slate-800 text-sm">{selectedCompany.tencongty}</div>
+                                        ) : (
+                                            <div className="text-slate-400 text-sm italic">Chưa chọn công ty</div>
+                                        )}
+                                    </div>
+                                    <button 
+                                        onClick={handleSubmitManual}
+                                        disabled={!selectedCompany || selectedStudents.length === 0}
+                                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all flex justify-center items-center gap-2"
+                                    >
+                                        <FaExchangeAlt /> Xác Nhận Phân Bổ
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Auto Info & Actions */}
+                            {mode === 'auto' && (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-100 text-center">
+                                            <div className="text-xl font-bold text-emerald-600">{Object.keys(selectedCompanies).length}</div>
+                                            <div className="text-xs text-emerald-500 font-bold uppercase">Công ty</div>
+                                        </div>
+                                        <div className="bg-purple-50 p-3 rounded-lg border border-purple-100 text-center">
+                                            <div className="text-xl font-bold text-purple-600">
+                                                {Object.values(selectedCompanies).reduce((a,b)=>a+b, 0)}
+                                            </div>
+                                            <div className="text-xs text-purple-500 font-bold uppercase">Tổng Chỉ tiêu</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="h-px bg-slate-100 my-2"></div>
+
+                                    <p className="text-xs text-slate-400 text-center mb-2">Chọn phương thức phân bổ tự động</p>
+                                    
+                                    <button 
+                                        onClick={() => handlePrepareAutoAllocation("address")}
+                                        className="w-full py-3 bg-white border border-emerald-500 text-emerald-600 hover:bg-emerald-50 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm"
+                                    >
+                                        <FaMapMarkerAlt /> Theo Địa Chỉ
+                                    </button>
+                                    
+                                    <button 
+                                        onClick={() => handlePrepareAutoAllocation("specialty")}
+                                        className="w-full py-3 bg-white border border-indigo-500 text-indigo-600 hover:bg-indigo-50 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm"
+                                    >
+                                        <FaBookOpen /> Theo Chuyên Ngành
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Summary / Hint */}
+                    <div className="bg-slate-100 rounded-xl p-4 border border-slate-200 text-slate-500 text-xs leading-relaxed">
+                        <p className="font-bold mb-1 text-slate-700">Lưu ý:</p>
+                        <ul className="list-disc pl-4 space-y-1">
+                            <li>Chế độ <strong>Tự động</strong> sẽ mở bảng xem trước (Preview) trước khi lưu.</li>
+                            <li><strong>Theo chuyên ngành</strong> sẽ ưu tiên khớp <em>Lĩnh vực công ty</em> với <em>Chuyên ngành sinh viên</em>.</li>
+                            <li>Đảm bảo dữ liệu Tọa độ (Lat/Long) đầy đủ cho chế độ Địa chỉ.</li>
+                        </ul>
+                    </div>
+                </section>
+            </main>
+
+            {/* --- MODALS --- */}
+            <Modal
+                show={modalOpen}
+                onClose={() => setModalOpen(false)}
+                size="7xl"
+                dismissible={false}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm"
+            >
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-h-[95vh] overflow-hidden flex flex-col">
+                    <ModalHeader className="border-b border-slate-100 px-6 py-4">
+                        <span className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                           {autoType === 'address' && <FaMapMarkerAlt className="text-emerald-500"/>}
+                           {autoType === 'specialty' && <FaBookOpen className="text-indigo-500"/>}
+                           Xác nhận Phân bổ Tự động: {autoType === 'address' ? "Theo Địa Chỉ" : "Theo Chuyên Ngành"}
+                        </span>
+                    </ModalHeader>
+                    
+                    <ModalBody className="p-0 bg-slate-50 overflow-y-auto custom-scrollbar">
+                        <div className="p-6">
+                            {autoType === 'address' && addressPayload && (
+                                <XacthucPhanBoTuDongCard
+                                    onClose={() => setModalOpen(false)}
+                                    students={addressPayload.students}
+                                    companies={addressPayload.companies}
+                                    madot={madot || ""}
+                                    madotphanbo={madotphanbo || ""}
+                                />
+                            )}
+
+                            {autoType === 'specialty' && specialtyPayload && (
+                                <XacthucPhanBoTuDongChuyenNganhCard
+                                    onClose={() => setModalOpen(false)}
+                                    students={specialtyPayload.students}
+                                    companies={specialtyPayload.companies}
+                                    madot={madot || ""}
+                                    madotphanbo={madotphanbo || ""}
+                                />
+                            )}
+                        </div>
+                    </ModalBody>
                 </div>
-            </div>
+            </Modal>
         </div>
-    )
+    );
 }

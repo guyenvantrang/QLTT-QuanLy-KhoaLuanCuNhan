@@ -1,6 +1,6 @@
 import axios from "axios";
 const API_URL = "http://localhost:3000";
-import type { CompanyPayload, StudentPayload } from "../models/allocation/add";
+import type { CompanychuyennganhPayload, CompanyPayload, StudentchuyennganhPayload, StudentPayload } from "../models/allocation/add";
 export async function GetAll(madot: string) {
     try {
         const res = await axios.get(`${API_URL}/api/internship-allocation/get-all/${madot}`);
@@ -147,6 +147,7 @@ export async function phanBoSinhVien(madot: string, madotphanbo: string, macongt
             macongty,
             masv
         }
+        alert(JSON.stringify({ madot, madotphanbo, macongty, masv }, null, 2));
         const res = await axios.post(`${API_URL}/api/AllocationDetails/phan-bosinh-vien`, PhanBoPayload, {
             headers: {
                 "Content-Type": "application/json",
@@ -158,6 +159,7 @@ export async function phanBoSinhVien(madot: string, madotphanbo: string, macongt
         throw new Error("Đã xảy ra lỗi, vui lòng thử lại.");
     }
 }
+
 
 
 export async function phanBoSinhVienTheoDiaChi(students: StudentPayload[], companies: CompanyPayload[]) {
@@ -179,6 +181,25 @@ export async function phanBoSinhVienTheoDiaChi(students: StudentPayload[], compa
     }
 }
 
+
+export async function phanBoSinhVienTheochuyennganh(students: StudentchuyennganhPayload[], companies: CompanychuyennganhPayload[]) {
+    try {
+        const payload = {
+            students,
+            companies
+        };
+        const res = await axios.post(`http://localhost:8080/allocate`, payload, {
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+
+        return res.data;
+    } catch (err: any) {
+        if (err.response?.data?.message) throw new Error(err.response.data.message);
+        throw new Error("Đã xảy ra lỗi, vui lòng thử lại.");
+    }
+}
 
 export async function xacnhandau(madot: string, masv: string, macongty: string) {
     try {

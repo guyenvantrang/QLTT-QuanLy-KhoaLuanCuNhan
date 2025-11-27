@@ -61,6 +61,7 @@ export interface CongTyThucTap {
   hoatdong?: string;
   lat: number;
   long: number;
+  linhvuc: string;
   soluongphanbo: number,
   chitietdotphanbo?: ChiTietDotPhanBo[];
   dangkythuctap?: DangKyThucTap[];
@@ -121,8 +122,20 @@ export interface GiangVienChamDiem {
   madiem: string;
   nhanxettrinhbay?: string;
   nhanxetbaocao?: string;
-  diemtrinhbay?: number;
-  diembaocao?: number;
+
+  // --- Các cột điểm mới ---
+  muctieuthuctap?: number;      // CLO1.1
+  gioithieudonvi?: number;      // CLO1.2
+  vitricongviec?: number;       // CLO1.3
+  vandungkienthuc?: number;     // CLO2.1
+  phuongphapthuchien?: number;  // CLO2.2
+  yeucaocongviec?: number;      // CLO3.1
+  baocaothuctap?: number;       // CLO3.2
+  thuyettrinh?: number;         // CLO3.3
+  traloicauhoi?: number;        // CLO3.4
+  ythuckyluat?: number;         // CLO4.1
+  kienthucthuctien?: number;    // CLO4.2
+
   dangkythuctap?: DangKyThucTap[];
 }
 
@@ -175,6 +188,7 @@ export interface SinhVien {
   matkhau?: string;
   lat: number;
   long: number;
+  chuyennganh: string;
   dangkythuctap?: DangKyThucTap[];
 }
 
@@ -219,7 +233,6 @@ export interface thongbao {
 }
 
 // PhanQuyenModels.ts
-
 export interface ChucVu {
   machucvu: string;
   tenchucvu?: string;
@@ -228,7 +241,6 @@ export interface ChucVu {
   ngaycapnhat?: string;
   nguoidung?: NguoiDung[];
 }
-
 export interface NguoiDung {
   manguoidung: string;
   machucvu?: string;
@@ -236,209 +248,144 @@ export interface NguoiDung {
   taikhoan?: string;
   matkhau?: string;
   chucvu?: ChucVu;
-  chitietnhomquyen?: ChiTietNhomQuyen[];
+  chitietnhomquyennguoidung?: ChiTietNhomQuyenNguoiDung[];
 }
-
-export interface TrangWeb {
-  matrang: string;
-  tentrang?: string;
-  mota?: string;
-  diachitruycap?: string;
-  ngaytao?: string;
-  ngaycapnhat?: string;
-  chucnang?: ChucNang[];
-  chitietnhomquyen?: ChiTietNhomQuyen[];
-}
-
 export interface ChucNang {
   machucnang: string;
-  matrang?: string;
+  trangtruycap?: string;
   matruycap?: string;
   tenchucnang?: string;
   mota?: string;
   ngaytao?: string;
   ngaycapnhat?: string;
-  chitietnhomquyen?: ChiTietNhomQuyen[];
-  trangweb?: TrangWeb;
-}
 
+  chitietnhomquyenchucnang?: ChiTietNhomQuyenChucNang[];
+}
 export interface NhomQuyen {
   manhomquyen: string;
   tennhom?: string;
   mota?: string;
   ngaytao?: string;
   ngaysua?: string;
-  chitietnhomquyen?: ChiTietNhomQuyen[];
-}
 
-export interface ChiTietNhomQuyen {
+  chitietnhomquyennguoidung?: ChiTietNhomQuyenNguoiDung[];
+  chitietnhomquyenchucnang?: ChiTietNhomQuyenChucNang[];
+}
+export interface ChiTietNhomQuyenNguoiDung {
   manguoidung: string;
   manhomquyen: string;
-  machucnang: string;
-  matrang: string;
   nguoidung?: NguoiDung;
   nhomquyen?: NhomQuyen;
+}
+export interface ChiTietNhomQuyenChucNang {
+  machucnang: string;
+  manhomquyen: string;
+
   chucnang?: ChucNang;
-  trangweb?: TrangWeb;
+  nhomquyen?: NhomQuyen;
 }
 
-// import React, { createContext, useContext, useState, useEffect } from "react";
-// interface AuthContextType {
-//   user: NguoiDung | null;
-//   permissions: {
-//     pages: TrangWeb[];
-//     functions: ChucNang[];
-//   };
-//   login: (user: NguoiDung, permissions: any) => void;
-//   logout: () => void;
-//   hasPage: (matruycap: string) => boolean;
-//   hasFunc: (machucnang: string, matrang: string) => boolean;
-// }
-
-// const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-//   const [user, setUser] = useState<NguoiDung | null>(null);
-//   const [permissions, setPermissions] = useState<{ pages: TrangWeb[]; functions: ChucNang[] }>({ pages: [], functions: [] });
-
-//   // Khôi phục từ localStorage khi reload
-//   useEffect(() => {
-//     const storedUser = localStorage.getItem("user");
-//     const storedPerms = localStorage.getItem("permissions");
-//     if (storedUser && storedPerms) {
-//       setUser(JSON.parse(storedUser));
-//       setPermissions(JSON.parse(storedPerms));
-//     }
-//   }, []);
-
-//   const login = (userData: NguoiDung, perms: any) => {
-//     setUser(userData);
-//     setPermissions(perms);
-//     localStorage.setItem("user", JSON.stringify(userData));
-//     localStorage.setItem("permissions", JSON.stringify(perms));
-//   };
-
-//   const logout = () => {
-//     setUser(null);
-//     setPermissions({ pages: [], functions: [] });
-//     localStorage.removeItem("user");
-//     localStorage.removeItem("permissions");
-//   };
-
-//   const hasPage = (diachitruycap: string) => {
-//     if (!user)  return false;
-//     // Nếu người dùng thuộc chức vụ admin → full quyền
-//     if (user?.chucvu?.tenchucvu?.toLowerCase() === "admin") return true;
-//     alert(user?.chucvu?.tenchucvu)
-//     return permissions.pages.some(p => p.diachitruycap === diachitruycap);
-//   };
-
-//   const hasFunc = (machucnang: string, matrang: string) => {
-//     // Nếu người dùng thuộc chức vụ admin → full quyền
-//     if (user?.chucvu?.tenchucvu?.toLowerCase() === "admin ") return true;
-
-//     return permissions.functions.some(f => f.machucnang === machucnang && f.matrang === matrang);
-//   };
 
 
-//   return (
-//     <AuthContext.Provider value={{ user, permissions, login, logout, hasPage, hasFunc }}>
-//       {children}
-//     </AuthContext.Provider>
-//   );
-// };
 
-// export const useAuth = () => {
-//   const context = useContext(AuthContext);
-//   if (!context) throw new Error("useAuth must be used within AuthProvider");
-//   return context;
-// };
+
+
 
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+// ======= PERMISSIONS FLATTEN =======
+export interface Permissions {
+  roles: NhomQuyen[];
+  functions: ChucNang[];
+}
+
+// ======= CONTEXT =======
 interface AuthContextType {
   user: NguoiDung | null;
-  permissions: {
-    pages: TrangWeb[];
-    functions: ChucNang[];
-  };
-  login: (user: NguoiDung, permissions: { pages: TrangWeb[]; functions: ChucNang[] }) => void;
+  permissions: Permissions;
+  login: (userData: NguoiDung) => void;
   logout: () => void;
-  hasPage: (diachitruycap: string) => boolean;
-  hasFunc: (matruycap: string, matrang: string) => boolean;
+  hasFunc: (trangtruycap: string, matruycap: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// ======= PROVIDER =======
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<NguoiDung | null>(null);
-  const [permissions, setPermissions] = useState<{ pages: TrangWeb[]; functions: ChucNang[] }>({
-    pages: [],
-    functions: [],
-  });
+  const [permissions, setPermissions] = useState<Permissions>({ roles: [], functions: [] });
 
+  // Restore session khi reload
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const storedPerms = localStorage.getItem("permissions");
-    if (storedUser && storedPerms) {
-      setUser(JSON.parse(storedUser));
-      setPermissions(JSON.parse(storedPerms));
+    try {
+      const storedUser = localStorage.getItem("user");
+      const storedPerms = localStorage.getItem("permissions");
+      if (storedUser && storedPerms) {
+        setUser(JSON.parse(storedUser));
+        setPermissions(JSON.parse(storedPerms));
+      }
+    } catch (e) {
+      console.error("Session restore failed:", e);
+      localStorage.clear();
     }
   }, []);
 
-  const login = (userData: NguoiDung, perms: { pages: TrangWeb[]; functions: ChucNang[] }) => {
+  // Login + flatten permissions
+  const login = (userData: NguoiDung) => {
+    const roles: NhomQuyen[] = [];
+    const functions: ChucNang[] = [];
+
+    userData.chitietnhomquyennguoidung?.forEach(ct => {
+      if (!ct.nhomquyen) return;
+      roles.push(ct.nhomquyen);
+
+      ct.nhomquyen.chitietnhomquyenchucnang?.forEach(cf => {
+        if (cf.chucnang) {
+          functions.push(cf.chucnang);
+        }
+      });
+    });
+
+    // Loại trùng chức năng theo machucnang
+    const uniqueFunctions = Array.from(new Map(functions.map(f => [f.machucnang, f])).values());
+
+    const perms: Permissions = { roles, functions: uniqueFunctions };
+
     setUser(userData);
     setPermissions(perms);
+
     localStorage.setItem("user", JSON.stringify(userData));
     localStorage.setItem("permissions", JSON.stringify(perms));
   };
 
   const logout = () => {
     setUser(null);
-    setPermissions({ pages: [], functions: [] });
-    localStorage.removeItem("user");
-    localStorage.removeItem("permissions");
+    setPermissions({ roles: [], functions: [] });
+    localStorage.clear();
   };
 
-  const hasPage = (diachitruycap: string) => {
+  const hasFunc = (trangtruycap: string, matruycap: string): boolean => {
     if (!user) return false;
-    if (user.chucvu?.tenchucvu?.toLowerCase() === "admin") return true;
-    return permissions.pages.some((p) => p.diachitruycap === diachitruycap);
+
+    // ADMIN full quyền
+    const roleName = user.chucvu?.tenchucvu?.trim().toLowerCase();
+    if (roleName === "admin" || roleName === "quản trị viên") return true;
+
+    // Kiểm tra trong flattened functions
+    return permissions.functions.some(
+      (f) => f.trangtruycap?.startsWith(trangtruycap) && f.matruycap === matruycap
+    );
+
   };
-
-  const hasFunc = (machucnang: string, matruycap: string) => {
-    if (!user) return false;
-    if (user.chucvu?.tenchucvu?.toLowerCase() === "admin") return true;
-    // alert("matrang"+ machucnang +"---" +"matruycap" + matruycap)
-    
-    // Tìm trang theo đường dẫn
-    const pageObj = permissions.pages.find(p => p.diachitruycap === matruycap);
-    if (!pageObj) {
-      console.warn("Không tìm thấy trang:", matruycap);
-      return false;
-    }
-
-    const matrang = pageObj.matrang;
-    // alert("mã trang :" + matrang);
-
-    const hasPermission = permissions.functions.some(f => f.matruycap === machucnang && f.matrang === matrang);
-
-    if (!hasPermission) {
-      console.warn(`Người dùng không có quyền: chức năng=${machucnang}, trang=${matrang}`);
-    }
-
-    return hasPermission;
-  };
-
-
 
   return (
-    <AuthContext.Provider value={{ user, permissions, login, logout, hasPage, hasFunc }}>
+    <AuthContext.Provider value={{ user, permissions, login, logout, hasFunc }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
+// ======= HOOK =======
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used within AuthProvider");

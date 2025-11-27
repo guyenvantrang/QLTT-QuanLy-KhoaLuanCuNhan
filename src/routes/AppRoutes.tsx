@@ -39,11 +39,11 @@ import PhanQuyenLayout from "../layouts/phanquyen";
 import PhanQuyenIndex from "../pages/auth/page-main";
 import QuanLyChucVu from "../pages/auth/page-main/chucvu";
 import QuanLyNguoiDung from "../pages/auth/page-main/nguoidung";
-import QuanLyTrangWeb from "../pages/auth/page-main/trangweb";
 import QuanLyChucNang from "../pages/auth/page-main/chucnang";
 import QuanLyNhomQuyen from "../pages/auth/page-main/nhomquyeb";
 import QuanLyPhanQuyen from "../pages/auth/page-main/phanquyen";
-import HeThong3D from "../pages/auth/page-main/sodo";
+// import HeThong3D from "../pages/auth/page-main/sodo";
+import LecturerAllocationStatistics from "../components/functionpages/batch-internships/phanbogiangvien";
 
 export default function AppRoutes() {
   return (
@@ -51,14 +51,14 @@ export default function AppRoutes() {
       <Route path="/login" element={<LoginLayout />} />
 
       <Route path="/home" element={
-        <ProtectedRoute accessCode="/home">
+        <ProtectedRoute trangtruycap="/home" matruycap="hienthi_home">
           <Homelayout />
         </ProtectedRoute>
       } />
 
       {/* Batch Internship */}
       <Route path="/batch-internship" element={
-        <ProtectedRoute accessCode="/batch-internship">
+        <ProtectedRoute trangtruycap="/home" matruycap="hienthi_batch">
           <BatchInternshipLayout />
         </ProtectedRoute>
       }>
@@ -69,16 +69,15 @@ export default function AppRoutes() {
 
       {/* Company Introduction */}
       <Route path="/company-introduction" element={
-        <ProtectedRoute accessCode="company-introduction">
+        <ProtectedRoute trangtruycap="/company" matruycap="hienthi_company_introduction">
           <CompanyIntroductionLayout />
         </ProtectedRoute>
       }>
         <Route index element={<CompanyIntroductionManagement />} />
       </Route>
 
-      {/* Internship Allocation */}
       <Route path="/internship-allocation" element={
-        <ProtectedRoute accessCode="internship-allocation">
+        <ProtectedRoute trangtruycap="/batch-internship" matruycap="hienthi_internship_allocation">
           <InternshipAllocationLayout />
         </ProtectedRoute>
       }>
@@ -87,6 +86,7 @@ export default function AppRoutes() {
         <Route path="allocation/:madot/:madotphanbo" element={<AllocationPage />} />
         <Route path="thongke/:madot" element={<DashboardThucTap />} />
         <Route path="danh-sach-sinh-vien-dang-ky/:madot" element={<StudentBatchManagement />} />
+        <Route path="danh-sach-phan-bo-giang-vien/:madot" element={<LecturerAllocationStatistics />} />
         <Route path="danh-sach-sinh-vien-da-co-cong-ty/:madot" element={<StudentHaveCompanyManagement />} />
         <Route path="danh-sach-sinh-vien-chua-co-cong-ty/:madot" element={<StudentHaveNotCompanyManagement />} />
         <Route path="danh-sach-xac-nhan/:madot" element={<InternshipRegistrationList />} />
@@ -94,7 +94,7 @@ export default function AppRoutes() {
 
       {/* Company */}
       <Route path="/company" element={
-        <ProtectedRoute accessCode="company">
+        <ProtectedRoute trangtruycap="/home" matruycap="hienthi_company">
           <CompanyLayout />
         </ProtectedRoute>
       }>
@@ -105,7 +105,7 @@ export default function AppRoutes() {
 
       {/* Teacher */}
       <Route path="/teacher" element={
-        <ProtectedRoute accessCode="teacher">
+        <ProtectedRoute trangtruycap="/home" matruycap="hienthi_teacher">
           <TeacherLayout />
         </ProtectedRoute>
       }>
@@ -117,7 +117,7 @@ export default function AppRoutes() {
 
       {/* Student */}
       <Route path="/student" element={
-        <ProtectedRoute accessCode="student">
+        <ProtectedRoute trangtruycap="/home" matruycap="hienthi_student">
           <StudentLayout />
         </ProtectedRoute>
       }>
@@ -127,7 +127,7 @@ export default function AppRoutes() {
 
       {/* ThongKe */}
       <Route path="/thongke" element={
-        <ProtectedRoute accessCode="thongke">
+        <ProtectedRoute trangtruycap="/home" matruycap="hienthi_thongke">
           <ThongKeLayout />
         </ProtectedRoute>
       }>
@@ -136,7 +136,7 @@ export default function AppRoutes() {
 
       {/* ThongBao */}
       <Route path="/thongbao" element={
-        <ProtectedRoute accessCode="thongbao">
+        <ProtectedRoute trangtruycap="/home" matruycap="hienthi_thongbao">
           <ThongbaoLayout />
         </ProtectedRoute>
       }>
@@ -147,19 +147,18 @@ export default function AppRoutes() {
 
       {/* Phan Quyen */}
       <Route path="/phanquyen" element={
-        <ProtectedRoute accessCode="phanquyen">
+        <ProtectedRoute trangtruycap="/home" matruycap="hienthi_phanquyen">
           <PhanQuyenLayout />
         </ProtectedRoute>
       }>
         <Route index element={<PhanQuyenIndex />} />
         <Route path="chucvu" element={<QuanLyChucVu />} />
         <Route path="nguoidung" element={<QuanLyNguoiDung />} />
-        <Route path="trangweb" element={<QuanLyTrangWeb />} />
         <Route path="chucnang" element={<QuanLyChucNang />} />
         <Route path="nhomquyen" element={<QuanLyNhomQuyen />} />
         <Route path="phanquyen" element={<QuanLyPhanQuyen />} />
-        <Route path="sodo" element={<HeThong3D />} />
-        
+        {/* <Route path="sodo" element={<HeThong3D />} /> */}
+
       </Route>
 
       {/* Redirect root */}

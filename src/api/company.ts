@@ -62,11 +62,11 @@ export async function Filter(phanloai?: string, hoatdong?: string) {
 
 
 export async function AddCompany(tencongty: string, diachi: string, masothue: string,
-    nguoidaidien: string, email: string, sdt: string, phanloai: string, hoatdong: string
+    nguoidaidien: string, email: string, sdt: string, phanloai: string, hoatdong: string , linhvuc:string
 ) {
     try {
         const payload = {
-            tencongty, diachi, masothue, nguoidaidien, email, sdt, phanloai, hoatdong,
+            tencongty, diachi, masothue, nguoidaidien, email, sdt, phanloai, hoatdong,linhvuc
         };
         const res = await axios.post(`${API_URL}/api/company/create-company`, payload, {
             headers: {
@@ -93,11 +93,11 @@ export async function DeleteCompany(macongty: string) {
 // 🟨 Cập nhật thông tin công ty
 export async function UpdateCompany(
     macongty: string, tencongty?: string, diachi?: string, masothue?: string, nguoidaidien?: string,
-    email?: string, sdt?: string, phanloai?: string, hoatdong?: string
+    email?: string, sdt?: string, phanloai?: string, hoatdong?: string , linhvuc?:string
 ) {
     try {
         const payload = {
-            tencongty, diachi, masothue, nguoidaidien, email, sdt, phanloai, hoatdong,
+            tencongty, diachi, masothue, nguoidaidien, email, sdt, phanloai, hoatdong,linhvuc
         };
         const res = await axios.patch(`${API_URL}/api/company/update-company/${macongty}`, payload, {
             headers: {

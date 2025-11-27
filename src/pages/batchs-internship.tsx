@@ -130,7 +130,7 @@ export default function InternshipManagement() {
 
 
     return (
-        <Can func="hienthi" page="/batch-internship">
+       
             <div className="p-6 bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">
@@ -144,7 +144,7 @@ export default function InternshipManagement() {
                             <span className="font-medium text-gray-700">Mã đợt đã chọn:</span>
                             <span className="text-blue-600 font-semibold">{selectedMadot || "Chưa chọn"}</span>
                         </div>
-                        <Can func="quanlydotphanbo" page="/batch-internship">
+                        <Can trangtruycap="/internship-allocation/create-allocation/:madot" matruycap="hienthi_dotthuctap_phanbocongty">
                             <button
                                 onClick={() => selectedMadot ? navigate(`/internship-allocation/create-allocation/${selectedMadot}`) : alert("Vui lòng chọn một đợt trước.")}
                                 className="flex items-center gap-2 bg-gradient-to-r from-purple-400 to-purple-600 text-white px-4 py-2 rounded-xl shadow hover:scale-105 transition"
@@ -152,7 +152,7 @@ export default function InternshipManagement() {
                                 <FaUsers /> Quản lý phân bổ công ty
                             </button>
                         </Can>
-                        <Can func="thongke" page="/batch-internship">
+                        <Can trangtruycap="/internship-allocation/thongke/:madot" matruycap="hienthi_dotthuctap_thongke">
                             <button
                                 onClick={() =>
                                     selectedMadot
@@ -171,7 +171,7 @@ export default function InternshipManagement() {
                         >
                             <FaList /> Tải tất cả
                         </button>
-                        <Can func="them" page="/batch-internship">
+                        <Can trangtruycap="/batch-internship" matruycap="hienthi_dotthuctap_them">
                             <button
                                 onClick={() => navigate("/batch-internship/add")}
                                 className="flex items-center gap-2 bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-xl shadow hover:scale-105 transition"
@@ -290,7 +290,7 @@ export default function InternshipManagement() {
                                             <td className="px-6 py-4 text-center">
                                                 <div className="flex justify-center items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                                                     {/* Nút Sửa */}
-                                                    <Can func="sua" page="/batch-internship">
+                                                    <Can trangtruycap="/batch-internship" matruycap="hienthi_dotthuctap_sua">
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -303,8 +303,7 @@ export default function InternshipManagement() {
                                                         </button>
                                                     </Can>
 
-                                                    {/* Nút Xóa */}
-                                                    <Can func="xoa" page="/batch-internship">
+                                                    <Can trangtruycap="/batch-internship" matruycap="hienthi_dotthuctap_xoa">
                                                         <button
                                                             onClick={async (e) => {
                                                                 e.stopPropagation();
@@ -384,7 +383,6 @@ export default function InternshipManagement() {
                     </div>
                 )}
             </div>
-        </Can>
     );
 
 }

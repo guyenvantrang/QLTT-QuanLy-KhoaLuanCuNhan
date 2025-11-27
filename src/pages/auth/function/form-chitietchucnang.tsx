@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaGlobe, FaKey, FaCalendarAlt, FaHashtag, FaExternalLinkAlt, FaShieldAlt } from 'react-icons/fa';
+import { FaGlobe, FaKey, FaCalendarAlt, FaHashtag, FaExternalLinkAlt, FaShieldAlt, FaLink } from 'react-icons/fa';
 import type { ChucNang } from '../../../models/model-all';
 
 interface ChucNangDetailModalProps {
@@ -7,7 +7,8 @@ interface ChucNangDetailModalProps {
 }
 
 const ChucNangDetailModal: React.FC<ChucNangDetailModalProps> = ({ data }) => {
-    const { machucnang, tenchucnang, matruycap, mota, ngaytao, ngaycapnhat, trangweb } = data;
+    // Cập nhật destructuring: lấy trangtruycap thay vì matrang/trangweb
+    const { machucnang, tenchucnang, matruycap, trangtruycap, mota, ngaytao, ngaycapnhat } = data;
 
     return (
         <div className="space-y-6">
@@ -37,21 +38,34 @@ const ChucNangDetailModal: React.FC<ChucNangDetailModalProps> = ({ data }) => {
             {/* Content Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
-                {/* Thông tin Trang Web Liên kết */}
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                {/* Thông tin Trang Web Liên kết (URL) */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col justify-center">
                     <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2">
-                        <FaGlobe /> Thuộc Trang Web
+                        <FaGlobe /> Trang Truy Cập / URL
                     </h4>
-                    {trangweb ? (
-                        <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
-                            <div>
-                                <p className="font-bold text-indigo-700">{trangweb.tentrang}</p>
-                                <p className="text-xs text-gray-500 font-mono mt-0.5">{trangweb.diachitruycap || trangweb.diachitruycap || 'URL chưa cập nhật'}</p>
+                    
+                    {trangtruycap ? (
+                        <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
+                            <div className="flex items-center gap-2 text-indigo-600 font-medium break-all">
+                                <FaLink className="shrink-0" />
+                                <span className="text-sm">{trangtruycap}</span>
                             </div>
-                            <FaExternalLinkAlt className="text-slate-300 w-4 h-4" />
+                            {/* Nếu là link http/https thì hiện nút mở tab mới */}
+                            {(trangtruycap.startsWith('http') || trangtruycap.startsWith('/')) && (
+                                <a 
+                                    href={trangtruycap} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="mt-2 text-xs flex items-center gap-1 text-gray-500 hover:text-indigo-600 transition-colors w-fit"
+                                >
+                                    <FaExternalLinkAlt className="w-3 h-3"/> Mở liên kết
+                                </a>
+                            )}
                         </div>
                     ) : (
-                        <p className="text-sm text-gray-400 italic">Không có thông tin trang web.</p>
+                        <div className="bg-gray-100 p-3 rounded-lg border border-gray-200 text-gray-400 text-sm italic flex items-center gap-2">
+                            <FaLink className="opacity-50"/> Chưa gán đường dẫn
+                        </div>
                     )}
                 </div>
 

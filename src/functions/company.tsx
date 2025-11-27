@@ -70,6 +70,7 @@ type AddCompanyElements = {
   email: HTMLInputElement;
   sdt: HTMLInputElement;
   phanloai: HTMLInputElement;
+  linhvuc: HTMLInputElement;
   hoatdong: HTMLInputElement;
   gioithieucongty: HTMLTextAreaElement; // textarea thay vì input
 };
@@ -92,14 +93,15 @@ export async function createCompany(
   const sdt = elements.sdt?.value.trim() || "";
   const phanloai = elements.phanloai?.value.trim() || "";
   const hoatdong = elements.hoatdong?.value.trim() || "";
+  const linhvuc = elements.linhvuc?.value.trim() || "";
 
   // Kiểm tra các trường bắt buộc
-  if (!tencongty || !tencongty || !diachi || !masothue || !nguoidaidien || !email || !sdt) {
+  if (!tencongty || !tencongty || !diachi || !masothue || !nguoidaidien || !email || !sdt || !linhvuc) {
     alert("Vui lòng nhập đầy đủ thông tin bắt buộc (mã công ty, tên công ty)");
     return;
   }
   try {
-    await AddCompany(tencongty, diachi, masothue, nguoidaidien, email, sdt, phanloai, hoatdong,);
+    await AddCompany(tencongty, diachi, masothue, nguoidaidien, email, sdt, phanloai, hoatdong, linhvuc);
     alert("Thêm công ty thành công");
     navigate("/company", { replace: true });
   } catch (err: any) {
@@ -111,7 +113,7 @@ export async function createCompany(
 // 🟧 Cập nhật thông tin công ty
 export async function UpdateCompanyFunction(
   e: React.FormEvent<HTMLFormElement>,
- 
+
 ) {
   e.preventDefault();
   const form = e.currentTarget;
@@ -127,20 +129,21 @@ export async function UpdateCompanyFunction(
   const sdt = elements.sdt?.value.trim() || "";
   const phanloai = elements.phanloai?.value.trim() || "";
   const hoatdong = elements.hoatdong?.value.trim() || "";
+  const linhvuc = elements.linhvuc?.value.trim() || "";
 
   // Kiểm tra các trường bắt buộc
-  if (!tencongty || !tencongty || !diachi || !masothue || !nguoidaidien || !email || !sdt) {
+  if (!tencongty || !tencongty || !diachi || !masothue || !nguoidaidien || !email || !sdt || !linhvuc) {
     alert("Vui lòng nhập đầy đủ thông tin bắt buộc (mã công ty, tên công ty)");
     return;
   }
   try {
-    const ketqua = await UpdateCompany(macongty, tencongty, diachi, masothue, nguoidaidien, email, sdt, phanloai, hoatdong,);
+    const ketqua = await UpdateCompany(macongty, tencongty, diachi, masothue, nguoidaidien, email, sdt, phanloai, hoatdong,linhvuc);
     if (ketqua.result === "no") {
       alert("Công ty của sinh viên không thể sửa" + phanloai);
       return;
     }
     alert("Sửa thành công ty thành công");
-     window.location.reload();
+    window.location.reload();
   } catch (err: any) {
     console.error(err);
     alert(err.message || "Đã xảy ra lỗi, vui lòng thử lại.");

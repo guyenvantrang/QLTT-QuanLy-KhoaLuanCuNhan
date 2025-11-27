@@ -50,8 +50,7 @@ export default function QuanLyNhomQuyen() {
         setLoading(true);
         try {
             const res = await getAllNhomQuyen();
-            // API trả về res, nên data nằm trong res.data
-            setListNhomQuyen(res.data || []);
+            setListNhomQuyen(res || []);
         } catch (err: any) {
             toast.error("Lỗi tải dữ liệu: " + (err.message || "Không xác định"));
         } finally {

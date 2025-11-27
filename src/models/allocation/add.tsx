@@ -14,3 +14,17 @@ export interface CompanyPayload {
   lat : number;
   long : number;
 }
+
+
+export interface StudentchuyennganhPayload {
+  masv: string;
+  chuyennganh: string;
+
+}
+
+export interface CompanychuyennganhPayload {
+  macongty: string;
+  chuyennganh: string; 
+  soluong: number;
+
+}

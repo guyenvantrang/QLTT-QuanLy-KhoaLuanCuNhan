@@ -142,7 +142,18 @@ export default function UpdateCongTyForm() {
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
                     </div>
-
+                    <div className="flex flex-col">
+                        <label className="flex items-center gap-2 font-medium text-gray-700 mb-1">
+                            <FiPhone /> Lĩnh vực
+                        </label>
+                        <input
+                            type="text"
+                            name="linhvuc"
+                            defaultValue={updatecongty?.linhvuc}
+                            placeholder="Nhập lĩnh vực"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        />
+                    </div>
                     {/* Phân loại */}
                     <div className="flex flex-col">
                         <label className="flex items-center gap-2 font-medium text-gray-700 mb-2">

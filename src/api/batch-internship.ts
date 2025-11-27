@@ -106,3 +106,53 @@ export async function UpdateBatchInternship(madot: string, tendot: string, ngayl
         alert("Không thể xóa đợt này");
     }
 }
+
+// ===============================
+//  THỐNG KÊ - COMPANY
+// ===============================
+
+// Thống kê tổng quan hệ thống
+export async function ThongKeCompany() {
+    try {
+        const res = await axios.get(`${API_URL}/api/company/thong-ke`);
+        return res.data;
+    } catch (err: any) {
+        if (err.response?.data?.message) throw new Error(err.response.data.message);
+        throw new Error("Đã xảy ra lỗi khi thống kê.");
+    }
+}
+
+// Thống kê 5 đợt mới nhất (tự tìm - phân bố)
+export async function ThongKeSoDoDot() {
+    try {
+        const res = await axios.get(`${API_URL}/api/company/thong-ke-so-do-dot`);
+        return res.data;
+    } catch (err: any) {
+        if (err.response?.data?.message) throw new Error(err.response.data.message);
+        throw new Error("Đã xảy ra lỗi khi lấy số đồ đợt.");
+    }
+}
+
+// Top 5 công ty có sinh viên nhiều nhất (phân loại = 1)
+export async function Top5Company() {
+    try {
+        const res = await axios.get(`${API_URL}/api/company/top-5-cong-ty`);
+        return res.data;
+    } catch (err: any) {
+        if (err.response?.data?.message) throw new Error(err.response.data.message);
+        throw new Error("Không thể lấy top 5 công ty.");
+    }
+}
+
+
+export async function DSCompanyPhanLoai1() {
+    try {
+        const res = await axios.get(`${API_URL}/api/company/ds-cong-ty-phan-loai-1`);
+        return res.data;
+    } catch (err: any) {
+        if (err.response?.data?.message)
+            throw new Error(err.response.data.message);
+
+        throw new Error("Không thể tải danh sách công ty phân loại 1.");
+    }
+}

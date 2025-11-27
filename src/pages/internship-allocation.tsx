@@ -69,7 +69,7 @@ export default function InternshipAlloactionManagement() {
 
 
     return (
-        <Can func="" page="">
+       
             <div className="p-6 bg-gradient-to-br from-slate-50 to-indigo-50 min-h-screen font-sans">
 
                 {/* Header */}
@@ -195,7 +195,6 @@ export default function InternshipAlloactionManagement() {
                     </div>
                 </div>
             </div>
-        </Can>
     );
 
 }
